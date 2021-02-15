@@ -35,6 +35,9 @@ leafUploadFront="upload.html";
 leafSiteSpecific='siteSpecific.js';
 leafPayNotify="payNotify.js";
 leafManifest='manifest.json';
+leafDataDelete='dataDelete';
+leafDataDeleteStatus='dataDeleteStatus';
+leafDeAuthorize='deAuthorize';
 
 
 

@@ -261,13 +261,14 @@ var flow=( function*(){
 
       var strScheme='http'+(site.boTLS?'s':''),   strSchemeLong=strScheme+'://';
       
-      
+  
       //var boTLS=false; if(boDO|boHeroku) { boTLS=true; }
       //var strScheme='http'+(boTLS?'s':''),   strSchemeLong=strScheme+'://';
       var uSite=strSchemeLong+wwwSite;
 
-      var rootDomainT=RootDomain[site.strRootDomain], wwwLoginBack=rootDomainT.wwwLoginBack;
-      extend(req, {site, sessionID, qs, objQS, siteName, boTLS:site.boTLS, strSchemeLong, wwwSite, uSite, pathName, ipClient, app_id:rootDomainT.fb.id, app_secret:rootDomainT.fb.secret});
+      //var rootDomainT=RootDomain[site.strRootDomain], wwwLoginBack=rootDomainT.wwwLoginBack;
+      //extend(req, {site, sessionID, qs, objQS, boTLS:site.boTLS, strSchemeLong, wwwSite, uSite, pathName, siteName, ipClient, app_id:rootDomainT.fb.id, app_secret:rootDomainT.fb.secret});
+      extend(req, {site, sessionID, qs, objQS, boTLS:site.boTLS, strSchemeLong, wwwSite, uSite, pathName, siteName, ipClient, rootDomain:RootDomain[site.strRootDomain]});
       
       var objReqRes={req, res};
       objReqRes.myMySql=new MyMySql(DB[site.db].pool);
@@ -286,12 +287,16 @@ var flow=( function*(){
         yield *setRedis(req.flow, req.sessionID+'_Login', objT, 300);
         //var uLoginBack=uSite+"/"+leafLoginBack;
         //var uLoginBack=strSchemeLong+wwwCommon+"/"+leafLoginBack;
+        var {wwwLoginBack,fb}=RootDomain[site.strRootDomain];
         var uLoginBack=strSchemeLong+wwwLoginBack;
-        var uTmp="http://www.facebook.com/v3.2/dialog/oauth?"+"client_id="+req.app_id+"&redirect_uri="+encodeURIComponent(uLoginBack)+"&state="+state+'&display=popup';  // +"&scope=user_hometown"
+        var uTmp=UrlOAuth.fb+"?client_id="+fb.id+"&redirect_uri="+encodeURIComponent(uLoginBack)+"&state="+state+'&display=popup';  // +"&scope=user_hometown"
         res.writeHead(302, {'Location': uTmp}); res.end();
       }
       else if(pathName=='/'+leafLoginBack){    var reqLoginBack=new ReqLoginBack(objReqRes);  yield* reqLoginBack.go();    }
       //else if(pathName=='/monitor.html'){        var reqMonitor=new ReqMonitor(req, res);      yield* reqMonitor.go();     }
+      else if(pathName=='/'+leafDataDelete){  yield* reqDataDelete.call(objReqRes);  }
+      else if(pathName=='/'+leafDataDeleteStatus){  yield* reqDataDeleteStatus.call(objReqRes);  }
+      //else if(pathName=='/'+leafDeAuthorize){  yield* reqDeAuthorize.call(objReqRes);  }
       else if(pathName=='/monitor.html'){     yield* reqMonitor.call(objReqRes);     }
       else if(pathName=='/createDumpCommand'){  var str=createDumpCommand(); res.out200(str);     }
       else if(pathName=='/debug'){    debugger  }

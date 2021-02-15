@@ -26,7 +26,6 @@ var getItemS=function(name){    var tmp=sessionStorage.getItem(name);    if(tmp!
 var setItemS=function(name,value){  sessionStorage[name]=JSON.stringify(value); }
 
 
-
 var msort=function(compare){
   var length = this.length,  middle = Math.floor(length / 2);
   //if(length < 2) return this;
@@ -144,13 +143,13 @@ Element.prototype.toggleClass=function() {this.classList.toggle(...arguments);re
 Element.prototype.hasClass=function() {return this.classList.contains(...arguments);}
 Node.prototype.cssChildren=function(styles){  this.childNodes.forEach(function(elA){ Object.assign(elA.style, styles);  }); return this;  }
 Node.prototype.myText=function(str){
-  if(typeof str=='undefined') { return this.textContent; }
-  if(typeof str!='string') { if(str===null) str=' '; str=str.toString(); }
+  if(arguments.length==0) { return this.textContent; }
+  if(typeof str!='string') { if(str==null) str=' '; str=str.toString(); }
   if(this.childNodes.length==1 && this.firstChild.nodeName=="#text" ) { this.firstChild.nodeValue=str||' ';  return this;} // Being a bit GC-friendly
   this.textContent=str||' '; return this;
 }
 Node.prototype.myHtml=function(str=' '){
-  if(typeof str!='string') { if(str===null) str=' '; str=str.toString(); }
+  if(typeof str!='string') { if(str==null) str=' '; str=str.toString(); }
   this.innerHTML=str||' '; return this;
 }
 Node.prototype.hide=function(){
@@ -208,8 +207,8 @@ var isVisible=function(el) {
 /*******************************************************************************************************************
  * popupHover: popup a elBubble when you hover over elArea
  *******************************************************************************************************************/
-var popupHover=function(elArea,elBubble){
-  elBubble.css({position:'absolute', 'box-sizing':'border-box', margin:'0px'}); //
+var popupHover=function(elArea, elBubble, tClose=4){
+  elBubble.css({position:'absolute', 'box-sizing':'border-box', margin:'0px', 'text-align':'left'}); //
   function setBubblePos(e){
     var xClear=6, yClear=6;
     var x = e.pageX, y = e.pageY;
@@ -252,6 +251,7 @@ var popupHover=function(elArea,elBubble){
     if(boTouch){ 
       elBubble.remove(); 
       if(boIOSTmp) elBlanket.remove();
+      clearTimeout(timer);
     } 
     else { elBubble.remove();  }
   }
@@ -266,7 +266,7 @@ var popupHover=function(elArea,elBubble){
       if(elBubble.parentNode) closeFunc();
       else {
         elBody.append(elBubble); setBubblePos(e);
-        clearTimeout(timer); timer=setTimeout(closeFunc, 4000);
+        clearTimeout(timer);  if(tClose) timer=setTimeout(closeFunc, tClose*1000);
         if(boIOSTmp) elBody.append(elBlanket);
       }
     });

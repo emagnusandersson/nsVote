@@ -69,6 +69,7 @@ xmlns:fb="http://www.facebook.com/2008/fbml">`);
 
   
   var uIcon200=uSite+site.SrcIcon[IntSizeIconFlip[200]];
+  var fbTmp=req.rootDomain.fb, fiIdTmp=fbTmp?fbTmp.id:``;
   var tmp=`
 <meta property="og:title" content="`+site.strTitle+`"/>
 <meta property="og:type" content="website" />
@@ -76,7 +77,7 @@ xmlns:fb="http://www.facebook.com/2008/fbml">`);
 <meta property="og:image" content="`+uIcon200+`"/>
 <meta property="og:site_name" content="`+wwwSite+`"/>
 <meta property="fb:admins" content="100002646477985"/>
-<meta property="fb:app_id" content="`+req.app_id+`"/>
+<meta property="fb:app_id" content="`+fiIdTmp+`"/>
 <meta property="og:description" content="`+site.metaDescription+`"/>
 <meta property="og:locale:alternate" content="sv_se" />
 <meta property="og:locale:alternate" content="en_US" />`;
@@ -213,7 +214,8 @@ ReqLoginBack.prototype.go=function*(){
   var uLoginBack=req.uSite+"/"+leafLoginBack; // This should use the site of the actual request
 
   if(objQS.state==this.sessionLogin.state) {
-    var uToGetToken = "https://graph.facebook.com/v3.2/oauth/access_token?"+"client_id="+req.app_id+"&redirect_uri="+encodeURIComponent(uLoginBack)+"&client_secret="+req.app_secret+"&code="+code;
+    var {id, secret}=req.rootDomain.fb;
+    var uToGetToken=UrlToken.fb+"?client_id="+id+"&redirect_uri="+encodeURIComponent(uLoginBack)+"&client_secret="+secret+"&code="+code;
     var reqStream=requestMod.get(uToGetToken); 
     //var semCB=0, semY=0, buf; 
     //var myConcat=concat(function(bufT){
@@ -368,7 +370,7 @@ ReqLoginBack.prototype.adminFun=function*(){
 ReqLoginBack.prototype.getGraph=function*(){
   var req=this.req, flow=req.flow, res=this.res;
     // With the access_token you can get the data about the user
-  var uGraph = "https://graph.facebook.com/v3.2/me?access_token="+this.access_token+'&fields=id,name,picture,locale,timezone,gender'; //,verified
+  var uGraph=UrlGraph.fb+"?access_token="+this.access_token+'&fields=id,name,picture,locale,timezone,gender'; //,verified
   var reqStream=requestMod.get(uGraph);
   //var myConcat=concat(function(buf){
     //var objGraph=JSON.parse(buf.toString());
@@ -381,6 +383,99 @@ ReqLoginBack.prototype.getGraph=function*(){
   return [null,''];
 }
 
+
+
+
+
+/******************************************************************************
+ * reqDataDelete   // From IdP
+ ******************************************************************************/
+
+function parseSignedRequest(signedRequest, secret) {
+  var [b64UrlMac, b64UrlPayload] = signedRequest.split('.', 2);
+  //var mac = b64UrlDecode(b64UrlMac);
+  var payload = b64UrlDecode(b64UrlPayload),  data = JSON.parse(payload);
+  var b64ExpectedMac = crypto.createHmac('sha256', secret).update(b64UrlPayload).digest('base64');
+  var b64UrlExpectedMac=b64ExpectedMac.replace(/\+/g, '-').replace(/\//g, '_').replace('=', '');
+  if (b64UrlMac !== b64UrlExpectedMac) {
+    return [Error('Invalid mac: ' + b64UrlMac + '. Expected ' + b64UrlExpectedMac)];
+  }
+  return [null,data];
+}
+
+
+app.deleteOne=function*(site,user_id){ // 
+  var {req}=this, {flow}=req, {userTab}=site.TableName;
+  var Ou={};
+
+  var Sql=[], Val=[];
+  Sql.push("SELECT count(*) AS n FROM "+userTab+";");
+  Sql.push("DELETE FROM "+userTab+" WHERE idIP=?;"); Val.push(user_id);
+  Sql.push("SELECT count(*) AS n FROM "+userTab+";");
+  var sql=Sql.join('\n');
+  var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err];
+  var nTotO=Number(results[0][0].n);
+  var c=results[1].affectedRows;
+  site.nUser=Number(results[2][0].n);
+  if(nTotO!=site.nUser) site.boGotNewVoters=1;
+
+
+  yield* setRedis(flow, strAppName+'TLastWrite', unixNow());  
+
+
+  return [null, c];
+}
+
+app.reqDataDelete=function*(){  //
+  var {req, res}=this;
+  var {flow, objQS, uSite}=req;
+
+  if(req.method=='GET' && boDbg){ var objUrl=url.parse(req.url), qs=objUrl.query||'', strData=qs; } else 
+  if(req.method=='POST'){
+    var buf, myConcat=concat(function(bufT){ buf=bufT; flow.next();  });    req.pipe(myConcat);    yield;
+    var strData=buf.toString();
+  }
+  else {res.outCode(400, "Post request wanted"); return; }
+  
+  //try{ var obj=JSON.parse(jsonInput); }catch(e){ res.outCode(400, "Error parsing json: "+e);  return; }
+
+  var Match=strData.match(/signed_request=(.*)/); if(!Match) {res.outCode(400, "String didn't start with \"signed_request=\""); return; }
+  var strDataB=Match[1];
+
+  var [err, data]=parseSignedRequest(strDataB, req.rootDomain.fb.secret); if(err) { res.outCode(400, "Error in parseSignedRequest: "+err.message); return; }
+  var {user_id}=data;
+
+  var StrMess=[];
+  for(var i=0;i<SiteName.length;i++){
+    var siteName=SiteName[i], site=Site[siteName];
+    var [err,c]=yield* deleteOne.call(this, site, user_id);
+    if(c) StrMess.push(siteName+' ('+c+')');
+  }
+
+  var mess='User '+user_id+':';     if(StrMess.length) mess+=' deleted on: '+StrMess.join(', '); else mess+=' not found.';
+  console.log('reqDataDelete: '+mess);
+  var confirmation_code=genRandomString(32);
+  yield *setRedis(flow, confirmation_code+'_DeleteRequest', mess, timeOutDeleteStatusInfo); //3600*24*30
+
+  res.setHeader('Content-Type', MimeType.json); 
+  //res.end("{ url: '"+uSite+'/'+leafDataDeleteStatus+'?confirmation_code='+confirmation_code+"', confirmation_code: '"+confirmation_code+ "' }");
+  res.end(JSON.stringify({ url: uSite+'/'+leafDataDeleteStatus+'?confirmation_code='+confirmation_code, confirmation_code }));
+}
+
+app.reqDataDeleteStatus=function*(){
+  var {req, res}=this;
+  var {flow, site, objQS, uSite}=req;
+  var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=querystring.parse(qs);
+  var confirmation_code=objQS.confirmation_code||'';
+  var [err,mess]=yield* cmdRedis(flow, 'GET', [confirmation_code+'_DeleteRequest']); 
+  if(err) {var mess=err.message;}
+  else if(mess==null) {
+    var [t,u]=getSuitableTimeUnit(timeOutDeleteStatusInfo);
+    //var mess="The delete status info is only available for "+t+u+".\nAll delete requests are handled immediately. So if you pressed delete, you are deleted.";
+    var mess="No info of deletion status found, (any info is deleted "+t+u+" after the deletion request).";
+  }
+  res.end(mess);
+}
 
 
 
@@ -412,7 +507,7 @@ app.reqStatic=function*() {
     var [err]=yield* readFileToCache(flow, filename);
     if(err) {
       if(err.code=='ENOENT') {res.out404(); return;}
-      if('host' in req.headers) console.error('Faulty request from'+req.headers.host);
+      if('host' in req.headers) console.error('Faulty request to '+req.headers.host+" ("+pathName+")");
       if('Referer' in req.headers) console.error('Referer:'+req.headers.Referer);
       res.out500(err); return;
     }
@@ -459,7 +554,7 @@ app.reqMonitor=function*(){
   var strColor='';
   if('admin' in objQS && objQS.admin){
     if(boRefresh) strColor='lightgreen';
-    if(site.boGotNewVendors) strColor='red';
+    if(site.boGotNewVoters) strColor='red';
   }
   var strUser=nUser;  if(strColor) strUser="<span style=\"background-color:"+strColor+"\">"+nUser+"</span>";
   Str.push("<body style=\"margin: 0px\">"+strUser+"</body>");

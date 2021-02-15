@@ -96,14 +96,15 @@ Reset:'Reset',
 ResetFilter:'Reset filter',
 
 
-// time units [singularShort, pluralShort, singularLong, pluralLong]
+// time units [[singularShort, pluralShort], [singularLong, pluralLong]]
 timeUnit:{
-s:['s','s','second','seconds'],
-min:['min','min','minute','minutes'],
-h:['h','h','hour','hours'],
-d:['d','d','day','days'],
-mo:['mo','mo','month','months'],
-y:['y','y','year','years']},
+s:[['s','s'],['second','seconds']],
+m:[['min','min'],['minute','minutes']],
+h:[['h','h'],['hour','hours']],
+d:[['d','d'],['day','days']],
+M:[['mo','mo'],['month','months']],
+y:[['y','y'],['year','years']]
+},
 
 timePref:{
 ts:'+',

@@ -131,11 +131,11 @@ app.createSiteSpecificClientJSAll=function*(flow) {
 var createSiteSpecificClientJS=function(siteName) {
   var site=Site[siteName], wwwSite=site.wwwSite;
 
-  //var StrSkip=['KeyProp', 'nProp', 'KeyPropFlip', 'StrOrderDB', 'TableName', 'ViewName', 'arrAllowed',  'boGotNewUsers', 'timerNUserLast', 'nVis', 'nUser', 'db', 'googleAnalyticsTrackingID','serv'];
+  //var StrSkip=['KeyProp', 'nProp', 'KeyPropFlip', 'StrOrderDB', 'TableName', 'ViewName', 'arrAllowed',  'boGotNewVoters', 'timerNUserLast', 'nVis', 'nUser', 'db', 'googleAnalyticsTrackingID','serv'];
   //var siteSkip={}; for(var i=0;i<StrSkip.length;i++){ var name=StrSkip[i]; siteSkip[name]=site[name]; delete site[name];}
   
   
-  var StrSkip=['KeyProp', 'nProp', 'KeyPropFlip', 'StrOrderDB', 'TableName', 'ViewName', 'arrAllowed',  'boGotNewUsers', 'timerNUserLast', 'nVis', 'nUser', 'db', 'googleAnalyticsTrackingID','serv'];
+  var StrSkip=['KeyProp', 'nProp', 'KeyPropFlip', 'StrOrderDB', 'TableName', 'ViewName', 'arrAllowed',  'boGotNewVoters', 'timerNUserLast', 'nVis', 'nUser', 'db', 'googleAnalyticsTrackingID','serv'];
   var Key=Object.keys(site), siteSimplified={};
   for(var i=0;i<Key.length;i++){ var name=Key[i]; if(StrSkip.indexOf(name)==-1) siteSimplified[name]=site[name]; }
 

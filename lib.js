@@ -168,13 +168,6 @@ app.copySome=function(a,b,Str){for(var i=0;i<Str.length;i++) { var name=Str[i]; 
 //}
 
 
-
-
-
-
-
-
-
 //
 // Dates and time
 //
@@ -187,43 +180,21 @@ app.UTC2Readable=function(utcTime){ var tmp=new Date(Number(utcTime)*1000);   re
 app.unixNow=function(){return (new Date()).toUnix();}
 
 app.getSuitableTimeUnit=function(t){ // t in seconds
-  var tabs=Math.abs(t), tsign=t>=0?+1:-1;
-  if(tabs<=90) return [tsign*tabs,'s'];
-  tabs/=60; // t in minutes
-  if(tabs<=90) return [tsign*tabs,'m']; 
-  tabs/=60; // t in hours
-  if(tabs<=36) return [tsign*tabs,'h'];
-  tabs/=24; // t in days
-  if(tabs<=2*365) return [tsign*tabs,'d'];
-  tabs/=365; // t in years
-  return [tsign*tabs,'y'];
+  var tAbs=Math.abs(t), tSign=t>=0?+1:-1;
+  if(tAbs<=90) return [tSign*tAbs,'s'];
+  tAbs/=60; // t in minutes
+  if(tAbs<=90) return [tSign*tAbs,'m']; 
+  tAbs/=60; // t in hours
+  if(tAbs<=36) return [tSign*tAbs,'h'];
+  tAbs/=24; // t in days
+  if(tAbs<=2*365) return [tSign*tAbs,'d'];
+  tAbs/=365; // t in years
+  return [tSign*tAbs,'y'];
 }
-app.getSuitableTimeUnit=function(t){ // t in seconds
-  var tabs=Math.abs(t), tsign=t>=0?+1:-1;
-  if(tabs<=90) return [tsign*tabs,'s'];
-  tabs/=60; // t in minutes
-  if(tabs<=90) return [tsign*tabs,'m']; 
-  tabs/=60; // t in hours
-  if(tabs<=36) return [tsign*tabs,'h'];
-  tabs/=24; // t in days
-  if(tabs<=2*365) return [tsign*tabs,'d'];
-  tabs/=365; // t in years
-  return [tsign*tabs,'y'];
-}
-app.UTC2ReadableDiff=function(tdiff,boLong,boArr){
-  if(typeof boLong =='undefined' ) boLong=0;
-  if(typeof boArr =='undefined' ) boArr=0;
-  //var tmp;  tmp=approxTimeDuration(tdiff,boLong,boArr);
-  var tmp=getSuitableTimeUnit(tdiff), n=Math.round(tmp[0]), indA=tmp[1];
-  if(indA=='m') indA='min';
-  var j1=0, j2=1; if(boLong==1){j1=2; j2=3;}
-  var unit=langHtml.timeUnit, units=unit[indA][j1]; if(n!=1) units=unit[indA][j2];
-
-  if(boArr==1){  return [n,units];  }
-  else{
-    var tmp=n+' '+units;  if(tdiff<0) tmp='-';
-    return tmp;
-  }
+app.getSuitableTimeUnitStr=function(tdiff,objLang=langHtml.timeUnit,boLong=0,boArr=0){
+  var [ttmp,u]=getSuitableTimeUnit(tdiff), n=Math.round(ttmp);
+  var strU=objLang[u][boLong][Number(n!=1)];
+  if(boArr){  return [n,strU];  } else{  return n+' '+strU;   }
 }
 Date.prototype.floorDay=function(){ this.setHours(0); this.setMinutes(0); this.setSeconds(0); this.setMilliseconds(0); return this;}
 
@@ -352,5 +323,28 @@ app.filterPropKeyByB=function(Prop, iBit){ // Check all Prop[strKey].b[iBit] for
 }
 
 
+app.b64UrlDecode=function(b64UrlString, boUint8Array=false){  // boUint8Array==true => output is in Uint8Array
+  const padding='='.repeat((4-b64UrlString.length%4) % 4);
+  const base64=(b64UrlString+padding).replace(/\-/g, '+').replace(/_/g, '/');
+
+  //const rawData=window.atob(base64);
+  const rawData=Buffer.from(base64, 'base64').toString();
+  if(!boUint8Array) return rawData;
+  const outputArray=new Uint8Array(rawData.length);
+
+  for(let i=0; i<rawData.length; ++i){ outputArray[i]=rawData.charCodeAt(i); }
+  return outputArray;
+}
+
+
+//
+// Escaping data
+//
+
+app.myJSEscape=function(str){return str.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+  // myAttrEscape
+  // Only one of " or ' must be escaped depending on how it is wrapped when on the client.
+app.myAttrEscape=function(str){return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/\//g,"&#47;");} // This will keep any single quataions.
+app.myLinkEscape=function(str){ str=myAttrEscape(str); if(str.startsWith('javascript:')) str='javascript&#58;'+str.substr(11); return str; }
 
 

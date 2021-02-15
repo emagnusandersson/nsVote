@@ -94,6 +94,16 @@ ConnectedSince:'Ansluten i',
 Reset:'Reset',
 ResetFilter:'Återställ filter',
 
+// time units [[singularShort, pluralShort], [singularLong, pluralLong]]
+timeUnit:{
+s:[['s','s'],['sekund','sekunder']],
+m:[['min','min'],['minut','minuter']],
+h:[['h','h'],['timme','timmar']],
+d:[['d','d'],['dag','dagar']],
+M:[['mån','mån'],['månad','månader']],
+y:[['år','år'],['år','år']]
+},
+
 VoteCreatedXAgo:'Röst skapad för <span></span> sedan',
 VoteChangedXAgo:'Röst ändrad för <span></span> sedan',
 

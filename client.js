@@ -27,7 +27,10 @@ var addStuffGeneral=function(){
       //
       // Add formatting functions
       //
-    var makeTimeF=function(strN,dir){return function(iMTab){ var data=MTab[iMTab][strN];  if(boUseTimeDiff[strN]) data=UTC2ReadableDiff(dir*(data-curTime)); else data=UTC2Readable(data); return data; } }
+    var makeTimeF=function(strN,dir){return function(iMTab){ 
+      var data=MTab[iMTab][strN];  if(boUseTimeDiff[strN]) {var t=dir*(data-curTime); data=t<0?'-':getSuitableTimeUnitStr(t);}
+      else data=UTC2Readable(data); return data; 
+    }  }
     
     var tmpSetCreated=makeTimeF('created',-1);
     var tmpSetLastActivity=makeTimeF('lastActivity',-1);
