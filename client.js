@@ -199,32 +199,6 @@ history.fastBack=function(viewGoal, boRefreshHash){
 // spanMessageTextCreate
 //
 
-//var spanMessageTextCreate=function(){
-  //var el=createElement('span');
-  //var spanInner=createElement('span');
-  //el.appendChild(spanInner, imgBusy)
-  //el.resetMess=function(time){
-    //clearTimeout(messTimer);
-    //if(typeof time =='number') { messTimer=setTimeout('resetMess()',time*1000); return; }
-    //spanInner.myText(' ');
-    //imgBusy.hide();
-  //}
-  //el.setMess=function(str,time,boRot){
-    //spanInner.myText(str);
-    //clearTimeout(messTimer);
-    //if(typeof time =='number')     messTimer=setTimeout('resetMess()',time*1000);
-    //imgBusy.toggle(Boolean(boRot));
-  //};
-  //el.setHtml=function(str,time,boRot){
-    //spanInner.myHtml(str);
-    //clearTimeout(messTimer);
-    //if(typeof time =='number')     messTimer=setTimeout('resetMess()',time*1000);
-    //imgBusy.toggle(Boolean(boRot));
-  //};
-  //var messTimer;
-  //el.addClass('message');//.css({'z-index':8100,position:'fixed'});
-  //return el;
-//}
 var divMessageTextCreate=function(){
   var spanInner=createElement('span');
   var imgBusyLoc=imgBusy.cloneNode().css({zoom:'65%','margin-left':'0.4em'}).hide();
@@ -402,7 +376,7 @@ var divLoginInfoExtend=function(el){
       summaryDiv.setAllOff(); //summaryDiv.setVis();
       history.fastBack(summaryDiv,true);
     }]];
-    majax(oAJAX,vec);
+    majax(vec);
     return false;
   });
 
@@ -465,7 +439,7 @@ var voterListDivExtend=function(el){
   }
   el.load=function(){ 
     setMess('... fetching data ... ',5,true);
-    var vec=[['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset,rowCount:el.rowCount},el.getListRet]];   majax(oAJAX,vec);
+    var vec=[['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset,rowCount:el.rowCount},el.getListRet]];   majax(vec);
   }
   el.setUpCondRet=function(data){ 
     var tmp=data.curTime;   if(typeof tmp!="undefined")  curTime=tmp;
@@ -639,7 +613,7 @@ var summaryDivExtend=function(el){
   el.toString=function(){return 'summaryDiv';}
   
   var upLoad=function(ind){
-    var vec=[['UUpdate',{choise:ind}], ['specSetup',{Role:'voter'}]];   majax(oAJAX,vec);
+    var vec=[['UUpdate',{choise:ind}], ['specSetup',{Role:'voter'}]];   majax(vec);
   }
   var setSingle=function(){  this.prop({'checked':true});   }
   
@@ -751,7 +725,7 @@ var summaryDivExtend=function(el){
   var topDivA=createElement('div').myAppend(butAdmin, tableButtonLoc, filterButton).css({'margin-top':'1em',overflow:'hidden', display:'flex',
   'justify-content':'space-between', width: '100%', flex:'0 0 auto'});
 
-  el.deleteButton=createElement('button').myAppend(langHtml.DeleteMyVote).on('click', function(){var vec=[['UDelete',{},el.setAllOff]];   majax(oAJAX,vec);});
+  el.deleteButton=createElement('button').myAppend(langHtml.DeleteMyVote).on('click', function(){var vec=[['UDelete',{},el.setAllOff]];   majax(vec);});
 
   el.append(topDivA,table,el.deleteButton);
   return el;
@@ -884,14 +858,14 @@ var voterInfoDivExtend=function(el){
 
 
 var loadTabNHist=function(){
-  var vec=[['setUp',{}], ['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet], ['getList',{offset:0,rowCount:voterListDiv.rowCount},voterListDiv.getListRet], ['getHist',{},getHistRet]];   majax(oAJAX,vec);
+  var vec=[['setUp',{}], ['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet], ['getList',{offset:0,rowCount:voterListDiv.rowCount},voterListDiv.getListRet], ['getHist',{},getHistRet]];   majax(vec);
     
   setMess('... fetching data ... ',0,true);
 }
 var loadTabStart=loadTabNHist;
 
 
-var majax=function(trash, vecIn){  // Each argument of vecIn is an array: [serverSideFunc, serverSideFuncArg, returnFunc]
+var majax=function(vecIn){  // Each argument of vecIn is an array: [serverSideFunc, serverSideFuncArg, returnFunc]
   var xhr = new XMLHttpRequest();
   xhr.open('POST', uBE, true);
   xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); 
@@ -1189,7 +1163,6 @@ if(boFF){
 
 
 
-var oAJAX={};
 
 
 
@@ -1327,7 +1300,7 @@ columnSorterDiv.setVis=function(){
 
 
 
-var vec=[['specSetup',{}],['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset:0,rowCount:voterListDiv.rowCount},voterListDiv.getListRet],['getHist',null,getHistRet]];   majax(oAJAX,vec);
+var vec=[['specSetup',{}],['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset:0,rowCount:voterListDiv.rowCount},voterListDiv.getListRet],['getHist',null,getHistRet]];   majax(vec);
 setMess('... fetching data... ',0,true);
 
 

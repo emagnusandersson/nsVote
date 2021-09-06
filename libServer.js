@@ -14,7 +14,7 @@ app.roundXY=function(resM,x,y){
 }
 
 
-app.runIdIP=function*(flow, IP, idIP, StrRole=['voter','admin']){ //check  idIP against the user-table and return diverse data
+app.runIdIP=async function(IP, idIP, StrRole=['voter','admin']){ //check  idIP against the user-table and return diverse data
 
   var siteName=this.req.siteName, site=this.site; 
   var TableName=site.TableName, {userTab, adminTab}=TableName;
@@ -75,14 +75,14 @@ app.runIdIP=function*(flow, IP, idIP, StrRole=['voter','admin']){ //check  idIP 
 
   var sql=Sql.join('\n'), Val=[];
   
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err]; 
+  var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err]; 
   if(Sql.length<2) results=[results];
   for(var i=0;i<results.length;i++){ Fin[i](results[i]);}
   return [null, userInfoFrDBUpd];
 }
 
 
-app.checkIfUserInfoFrIP=function*(){
+app.checkIfUserInfoFrIP=async function(){
   var boExist=false;
   if('userInfoFrIP' in this.sessionCache && typeof this.sessionCache.userInfoFrIP=='object'){
     //var StrMustHave=['IP', 'idIP', 'nameIP', 'nickIP', 'image', 'homeTown', 'state']; boExist=true; 
@@ -96,15 +96,15 @@ app.checkIfUserInfoFrIP=function*(){
   if(!boExist) {
     //resetSessionMain.call(this); 
     this.sessionCache={userInfoFrDB:extend({},specialistDefault),   userInfoFrIP:{}};
-    yield *setRedis(this.req.flow, this.req.sessionID+'_Cache', this.sessionCache, maxUnactivity);
+    var [err]=await setRedis(this.req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err) return [err];
   }
-  return boExist;
+  return [null,boExist];
   
 }
 //clearSession=function(){
   ////resetSessionMain.call(this);
   //this.sessionCache={userInfoFrDB:extend({},specialistDefault),   userInfoFrIP:{}};
-  //yield *setRedis(flow, req.sessionID+'_Cache', this.sessionCache, maxUnactivity);
+  //var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err) return [err];
   //this.GRet.userInfoFrDBUpd=extend({},specialistDefault);
 //}
 app.checkIfAnySpecialist=function(){
@@ -114,16 +114,16 @@ app.checkIfAnySpecialist=function(){
 
 
 
-app.createSiteSpecificClientJSAll=function*(flow) {
+app.createSiteSpecificClientJSAll=async function() {
   for(var i=0;i<SiteName.length;i++){
     var siteName=SiteName[i];
     var buf=createSiteSpecificClientJS(siteName);
     var keyCache=siteName+'/'+leafSiteSpecific;
-    var [err]=yield *CacheUri.set(flow, keyCache, buf, 'js', true, true); if(err) return [err];
+    var [err]=await CacheUri.set(keyCache, buf, 'js', true, true); if(err) return [err];
 
     var buf=createManifest(siteName);
     var keyCache=siteName+'/'+leafManifest;
-    var [err]=yield *CacheUri.set(flow, keyCache, buf, 'json', true, true); if(err) return [err];
+    var [err]=await CacheUri.set(keyCache, buf, 'json', true, true); if(err) return [err];
   }
   return [null];
 }
@@ -161,7 +161,7 @@ var createSiteSpecificClientJS=function(siteName) {
 
 app.createManifest=function(siteName){
   var site=Site[siteName], {wwwSite, icons}=site;
-  var uSite="https://"+site.wwwSite;
+  var uSite="https://"+wwwSite;
   let objOut={theme_color:"#ff0", background_color:"#fff", display:"minimal-ui", prefer_related_applications:false, short_name:siteName, name:siteName, start_url: uSite, icons }
 
   //let str=serialize(objOut);
@@ -169,15 +169,15 @@ app.createManifest=function(siteName){
   return str;
 }
 
-app.createManifestNStoreToCache=function*(flow, siteName){
+app.createManifestNStoreToCache=async function(siteName){
   var strT=createManifest(siteName);
   var buf=Buffer.from(strT, 'utf8');
-  var [err]=yield* CacheUri.set(flow, siteName+'/'+leafManifest, buf, 'json', true, false);   if(err) return [err];
+  var [err]=await CacheUri.set(siteName+'/'+leafManifest, buf, 'json', true, false);   if(err) return [err];
   return [null];
 }
-app.createManifestNStoreToCacheMult=function*(flow, SiteName){
+app.createManifestNStoreToCacheMult=async function(SiteName){
   for(var i=0;i<SiteName.length;i++){
-    var [err]=yield* createManifestNStoreToCache(flow, SiteName[i]);   if(err) return [err];
+    var [err]=await createManifestNStoreToCache(SiteName[i]);   if(err) return [err];
   }
   return [null];
 }

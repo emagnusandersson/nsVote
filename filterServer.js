@@ -76,19 +76,19 @@ app.HistCalc=function(arg){
   copySome(this, arg, ['Prop', 'myMySql', 'Filt', 'strDBPrefix', 'strTableRef']);
   this.WhereWExtra=array_merge(arg.Where,arg.WhereExtra);
 }
-app.HistCalc.prototype.getHist=function*(flow){
+app.HistCalc.prototype.getHist=async function(){
   var StrProp=Object.keys(this.Filt), nFilt=StrProp.length;
   var Hist=Array(nFilt);
   for(var i=0;i<nFilt;i++){
     var tStart=new Date();
     var name=StrProp[i], prop=this.Prop[name], Where=[].concat(this.WhereWExtra); Where.splice(i,1); var arg={name, prop, Where};
-    var [err, hist]=yield* this.getHistOne(flow, arg); if(err) return [err];
+    var [err, hist]=await this.getHistOne(arg); if(err) return [err];
     Hist[i]=hist;
     var tMeas=(new Date())-tStart; if(boDbg) console.log(name+': '+tMeas+'ms');
   }
   return [null,Hist];
 }
-app.HistCalc.prototype.getHistOne=function*(flow, arg){
+app.HistCalc.prototype.getHistOne=async function(arg){
   //var {prop, strName:name, WhereWExtra, strTableRef, strDBPrefix, myMySql}=this;
   var {strTableRef, strDBPrefix, myMySql}=this;
   var {prop, name, Where}=arg;
@@ -110,7 +110,7 @@ app.HistCalc.prototype.getHistOne=function*(flow, arg){
     }
 
     var Val=[];  //set GLOBAL max_heap_table_size=128*1024*1024, GLOBAL tmp_table_size=128*1024*1024
-    var [err, results]=yield* myMySql.query(flow, sql, Val);  if(err) return [err];
+    var [err, results]=await myMySql.query(sql, Val);  if(err) return [err];
     
     var nGroupsInFeat=results.length,     boTrunk=nGroupsInFeat>maxGroupsInFeat,   nDisp=boTrunk?maxGroupsInFeat:nGroupsInFeat,     nWOTrunk=0;
     var hist=[]; 
@@ -126,7 +126,7 @@ app.HistCalc.prototype.getHistOne=function*(flow, arg){
       var relaxCountExp; if('relaxCountExp' in prop) { relaxCountExp=prop.relaxCountExp(name);  }  else relaxCountExp='count(*)';
       if(relaxCountExp===null) { return [new Error('relaxCountExp===null')]; }
       var sql="SELECT "+relaxCountExp+" AS n FROM \n"+strTableRef+" "+strCond+";",   Val=[];
-      var [err, results]=yield* myMySql.query(flow, sql, Val);  if(err) return [err];
+      var [err, results]=await myMySql.query(sql, Val);  if(err) return [err];
       var nInRelaxedCond=results[0].n;
       var nTrunk=nInRelaxedCond-nWOTrunk;  hist.push(['', nTrunk]);
     } 
@@ -145,7 +145,7 @@ app.HistCalc.prototype.getHistOne=function*(flow, arg){
     var sql="SELECT b.id AS bin, "+countExp+" AS groupCount FROM "+binTable+" b, \n("+strTableRef+")\n"+strCond+"\nGROUP BY bin ORDER BY "+strOrder+";";
     
     var Val=[];
-    var [err, results]=yield* myMySql.query(flow, sql, Val);  if(err) return [err];
+    var [err, results]=await myMySql.query(sql, Val);  if(err) return [err];
     var hist=[], nDisp=results.length;
     for(var j=0;j<nDisp;j++){   hist.push([Number(results[j].bin), Number(results[j].groupCount)]);    }
     hist.push(false);  // The last item marks if the second-last-item is a trunk (remainder)

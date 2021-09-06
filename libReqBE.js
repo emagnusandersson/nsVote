@@ -38,22 +38,22 @@ ReqBE.prototype.mesEO=function(errIn, statusCode=500){
   this.res.end(serialize(objOut));
 }
 
-ReqBE.prototype.go=function*(){
-  var req=this.req, flow=req.flow, res=this.res, site=req.site;
+ReqBE.prototype.go=async function(){
+  var {req, res}=this, {site}=req;
 
   var redisVar=req.sessionID+'_Cache';
-  this.sessionCache=yield* getRedis(flow, redisVar,1);
+  var [err,val]=await getRedis(redisVar,1);  if(err){ this.mesEO(err);  return; }   this.sessionCache=val;
   if(!this.sessionCache || typeof this.sessionCache!='object') { 
     //resetSessionMain.call(this);
     this.sessionCache={userInfoFrDB:extend({},specialistDefault),   userInfoFrIP:{}};
-    yield *setRedis(flow, redisVar, this.sessionCache, maxUnactivity);
+    var [err]=await setRedis(redisVar, this.sessionCache, maxUnactivity); if(err){ this.mesEO(err);  return; }
   }
   
   if(site.typeApp=='ip'){
     this.sessionCache.userInfoFrIP={'IP':'openid','idIP':req.ipClient,'nameIP':'','nickIP':''};
   } 
   
-  yield* expireRedis(flow, redisVar, maxUnactivity);
+  var [err]=await expireRedis(redisVar, maxUnactivity); if(err){ this.mesEO(err);  return; }
  
  
   var jsonInput;
@@ -62,17 +62,15 @@ ReqBE.prototype.go=function*(){
       var form = new formidable.IncomingForm();
       form.multiples = true;  
 
-      var err, fields, files;
-      form.parse(req, function(errT, fieldsT, filesT) { err=errT; fields=fieldsT; files=filesT; flow.next();  });  yield;  if(err){ this.mesEO(err);  return; } 
+      var [err, fields, files]=await new Promise(resolve=>{  form.parse(req, (...arg)=>resolve(arg));  });     if(err){ this.mesEO(err); return; } 
       
       this.File=files['fileToUpload[]'];
       if('kind' in fields) this.kind=fields.kind; else this.kind='s';
       if(!(this.File instanceof Array)) this.File=[this.File];
       jsonInput=fields.vec;
       
-
     }else{
-      var buf, myConcat=concat(function(bufT){ buf=bufT; flow.next();  });    req.pipe(myConcat);    yield;
+      var [err,buf]=await new Promise(resolve=>{  var myConcat=concat(bT=>resolve([null,bT]));    req.pipe(myConcat);  });   if(err){ this.mesEO(err); return; }
       jsonInput=buf.toString();
     }
   }
@@ -117,12 +115,12 @@ ReqBE.prototype.go=function*(){
   var redisVar=req.sessionID+'_CSRFCode'+ucfirst(caller), CSRFCode;
   if(boCheckCSRF){
     if(!CSRFIn){ this.mesO('CSRFCode not set (try reload page)'); return;}
-    var tmp=yield* getRedis(flow, redisVar);
-    if(CSRFIn!==tmp){ this.mesO('CSRFCode err (try reload page)'); return;}
+    var [err,CSRFStore]=await getRedis(redisVar); if(err) {this.mesEO(err);  return; }
+    if(CSRFIn!==CSRFStore){ this.mesO('CSRFCode err (try reload page)'); return;}
   }
   if(boSetNewCSRF){
     var CSRFCode=randomHash();
-    var tmp=yield* setRedis(flow, redisVar, CSRFCode, maxUnactivity);
+    var [err]=await setRedis(redisVar, CSRFCode, maxUnactivity); if(err){ this.mesEO(err);  return; }
     this.GRet.CSRFCode=CSRFCode;
   }
 
@@ -137,7 +135,7 @@ ReqBE.prototype.go=function*(){
   }
 
   for(var k=0; k<Func.length; k++){
-    var [func,inObj]=Func[k],   [err, result]=yield* func.call(this, inObj);
+    var [func,inObj]=Func[k],   [err, result]=await func.call(this, inObj);
     if(res.finished) return;
     else if(err){
       if(typeof err=='object' && err.name=='ErrorClient') this.mesO(err); else this.mesEO(err);     return;
@@ -148,40 +146,40 @@ ReqBE.prototype.go=function*(){
 }
 
 
-ReqBE.prototype.specSetup=function*(inObj){
-  var req=this.req, flow=req.flow, site=req.site, Ou={};
+ReqBE.prototype.specSetup=async function(inObj){
+  var {req}=this, {site}=req, Ou={};
   var Role=null; if(typeof inObj=='object' && 'Role' in inObj) Role=inObj.Role;
   if(site.typeApp=='ip'){
     this.sessionCache.userInfoFrIP={'IP':'openid','idIP':req.ipClient,'nameIP':'','nickIP':''};
   }
-  var boOK=yield* checkIfUserInfoFrIP.call(this);
+  var [err, boOK]=await checkIfUserInfoFrIP.call(this); if(err) return [err];
   if(!boOK) { return [null, [Ou]];} 
   var {IP,idIP}=this.sessionCache.userInfoFrIP;
-  var [err, result]=yield* runIdIP.call(this, flow, IP, idIP);
+  var [err, result]=await runIdIP.call(this, IP, idIP);
   extend(this.GRet.userInfoFrDBUpd,result);    extend(this.sessionCache.userInfoFrDB,result);
 
 
-  yield *setRedis(flow, req.sessionID+'_Cache', this.sessionCache, maxUnactivity);
+  var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err) return [err];
   if(!checkIfAnySpecialist.call(this)){ // If the user once clicked login, but never saved anything then logout
     //clearSession.call(this);
     this.sessionCache={userInfoFrDB:extend({},specialistDefault),   userInfoFrIP:{}};
-    yield *setRedis(flow, req.sessionID+'_Cache', this.sessionCache, maxUnactivity);
+    var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err) return [err];
     this.GRet.userInfoFrDBUpd=extend({},specialistDefault);
   } 
   return [null, [Ou]];
 }
 
-ReqBE.prototype.logout=function*(inObj){
-  var req=this.req, flow=req.flow;
+ReqBE.prototype.logout=async function(inObj){
+  var {req}=this;
   //resetSessionMain.call(this);  
   this.sessionCache={userInfoFrDB:extend({},specialistDefault),   userInfoFrIP:{}};
-  yield *setRedis(flow, req.sessionID+'_Cache', this.sessionCache, maxUnactivity);
+  var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err) return [err];
   this.GRet.userInfoFrDBUpd=extend({},specialistDefault);
   this.mes('Logged out'); return [null, [0]];;
 }
 
 
-ReqBE.prototype.setUpCond=function*(inObj){
+ReqBE.prototype.setUpCond=async function(inObj){
   var site=this.req.site, Prop=site.Prop;
   var Ou={};
   if(typeof inObj.Filt!='object') return [new ErrorClient('typeof inObj.Filt!="object"')]; 
@@ -193,8 +191,8 @@ ReqBE.prototype.setUpCond=function*(inObj){
   return [null, [Ou]];
 }
 
-ReqBE.prototype.setUp=function*(inObj){  // Set up some properties etc.  (curTime).
-  var req=this.req, flow=req.flow, siteName=req.siteName, site=req.site;
+ReqBE.prototype.setUp=async function(inObj){  // Set up some properties etc.  (curTime).
+  var {req}=this, {site}=req;
   var TableName=site.TableName;
   var {userTab, userSnapShotTab}=site.TableName;
   
@@ -202,28 +200,29 @@ ReqBE.prototype.setUp=function*(inObj){  // Set up some properties etc.  (curTim
   Sql.push("SELECT UNIX_TIMESTAMP(now()) AS now;");
 
   var sql=Sql.join('\n'), Val=[];
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err];
+  var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
   this.GRet.curTime=results[0].now; 
   
   var tNowRewrite=null;  // null => mysql uses built in "now()"
   if(boUseSnapShot){
     var tNow=unixNow(); 
-    var redisVar=strAppName+'TSnapShot', tSnapShot=yield* getRedis(flow, redisVar, 1)||0;
+    var redisVar=strAppName+'TSnapShot', [err,tSnapShot]=await getRedis(redisVar, 1)||0; if(err) return [err];
     var boCopy=tNow>tSnapShot+ageMaxSnapShot;    // If too much time has elapsed then "copy".
     if(boCopy){
       console.log('Making snapshot...');
       var sql=`CALL copyTable('`+userSnapShotTab+`','`+userTab+`');`, Val=[ageMaxSnapShot];
-      var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err];
+      var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
       var tSnapShot=unixNow();
-      yield* setRedis(flow, redisVar, tSnapShot);
+      var [err]=await setRedis(redisVar, tSnapShot); if(err) return [err];
       console.log('Made snapshot');
     }
     tNowRewrite=tSnapShot;
   }
   else if(boUseLastWriteNow){   
-    var redisVar=strAppName+'TLastWrite', tLastWrite=yield* getRedis(flow, redisVar, 1)||0;
+    var redisVar=strAppName+'TLastWrite', [err, tLastWrite]=await getRedis(redisVar, 1)||0; if(err) return [err];
     if(!tLastWrite) {
-      tLastWrite=unixNow(); yield* setRedis(flow, redisVar, tLastWrite);
+      tLastWrite=unixNow();
+      var [err]=await setRedis(redisVar, tLastWrite); if(err) return [err];
     }
     tNowRewrite=tLastWrite;
   }
@@ -235,8 +234,8 @@ ReqBE.prototype.setUp=function*(inObj){  // Set up some properties etc.  (curTim
 }  
 
 
-ReqBE.prototype.getList=function*(inObj){
-  var req=this.req, flow=req.flow, siteName=req.siteName, site=req.site;
+ReqBE.prototype.getList=async function(inObj){
+  var {req}=this, {site}=req;
   var TableName=site.TableName;
   //var strSel=this.strSel;
   var Ou={};
@@ -249,7 +248,7 @@ ReqBE.prototype.getList=function*(inObj){
   var Val=[];
   var strCond=array_filter(this.Where).join(' AND '); if(strCond.length) strCond=' WHERE '+strCond;
   var sql="SELECT SQL_CALC_FOUND_ROWS "+site.strSel+" FROM "+userTab+" u "+strCond+" GROUP BY u.idUser ORDER BY lastActivity DESC LIMIT "+offset+","+rowCount+";", Val=[];
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err];
+  var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
 
   //Ou.tab=arrObj2TabNStrCol(results);
   Ou.tab=[];
@@ -262,19 +261,19 @@ ReqBE.prototype.getList=function*(inObj){
   }  
 
   var sql="SELECT FOUND_ROWS() AS n;", Val=[]; // nFound
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err];
+  var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
   var nFound=results[0].n;   this.Str.push("Found: "+nFound);
 
   var sql="SELECT count(*) AS nTot FROM "+userTab+";", Val=[];
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err];
+  var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
   Ou.NVoter=[nFound, results[0].nTot];
 
   return [null, [Ou]];
 }
 
 
-ReqBE.prototype.getHist=function*(inObj){
-  var req=this.req, flow=req.flow, siteName=req.siteName, site=req.site;
+ReqBE.prototype.getHist=async function(inObj){
+  var {req}=this, {site}=req;
   var TableName=site.TableName;
 
   var Ou={};
@@ -289,16 +288,16 @@ ReqBE.prototype.getHist=function*(inObj){
   copySome(arg, this, ['myMySql', 'Filt', 'Where']);
   arg.strDBPrefix=req.siteName;
   var histCalc=new HistCalc(arg);
-  var [err, Hist]=yield* histCalc.getHist(flow, arg); if(err) return [err];
+  var [err, Hist]=await histCalc.getHist(arg); if(err) return [err];
   Ou.Hist=Hist;
   return [null, [Ou]];
 }
 
 
-ReqBE.prototype.UUpdate=function*(inObj){ // writing needSession
-  var req=this.req, flow=req.flow, siteName=req.siteName, site=req.site, Prop=site.Prop, {userTab}=site.TableName;
+ReqBE.prototype.UUpdate=async function(inObj){ // writing needSession
+  var {req}=this, {site}=req, Prop=site.Prop, {userTab}=site.TableName;
   var Ou={};
-  var boOK=yield* checkIfUserInfoFrIP.call(this);
+  var [err, boOK]=await checkIfUserInfoFrIP.call(this); if(err) return [err];
   if(!boOK) { return [new ErrorClient('No session')]; }
 
   //var tmp=this.sessionCache.userInfoFrIP, IP=tmp.IP, idIP=tmp.idIP, nameIP=tmp.nameIP, nickIP=tmp.nickIP;
@@ -326,7 +325,7 @@ ReqBE.prototype.UUpdate=function*(inObj){ // writing needSession
     Sql.push("DELETE FROM "+userTab+" WHERE IP=? AND idIP=?;");
     var Val=[IP, idIP];
     var sql=Sql.join('\n');
-    var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err];
+    var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
     var n=results.affectedRows, pluralS=n==1?'':'s';
     this.mes(n+' user'+pluralS+' deleted');
     return [null,[Ou]];
@@ -388,11 +387,11 @@ ReqBE.prototype.UUpdate=function*(inObj){ // writing needSession
   
   //console.log(sql); 
   var boUInsert;
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err];
+  var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
   var c=results.affectedRows; boUInsert=c==1; 
   console.log('affectedRows: '+results.affectedRows);
 
-  yield* setRedis(flow, strAppName+'TLastWrite', unixNow());
+  var [err]=await setRedis(strAppName+'TLastWrite', unixNow()); if(err) return [err];
 
     // How to detect whether there was an insert or update: Check affected rows (the result depends on whether auto_increment was set):    
     //                    insert   |   update
@@ -404,10 +403,10 @@ ReqBE.prototype.UUpdate=function*(inObj){ // writing needSession
 }
 
 
-ReqBE.prototype.UDelete=function*(inObj){ // writing needSession
-  var req=this.req, flow=req.flow, siteName=req.siteName, site=req.site, Prop=site.Prop, {userTab}=site.TableName;
+ReqBE.prototype.UDelete=async function(inObj){ // writing needSession
+  var {req}=this, {site}=req, Prop=site.Prop, {userTab}=site.TableName;
   var Ou={};
-  var boOK=yield* checkIfUserInfoFrIP.call(this);
+  var [err, boOK]=await checkIfUserInfoFrIP.call(this); if(err) return [err];
   if(!boOK) { return [new ErrorClient('No session')]; }
 
   //var tmp=this.sessionCache.userInfoFrIP, IP=tmp.IP, idIP=tmp.idIP, nameIP=tmp.nameIP;
@@ -419,21 +418,21 @@ ReqBE.prototype.UDelete=function*(inObj){ // writing needSession
   Sql.push("DELETE FROM "+userTab+" WHERE idUser=?;");
   var Val=[idUser,idUser];
   var sql=Sql.join('\n');
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err];
+  var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
 
   this.mes('deleted');
   
-  yield* setRedis(flow, strAppName+'TLastWrite', unixNow());  
+  var [err]=await setRedis(strAppName+'TLastWrite', unixNow()); if(err) return [err]; 
 
   //resetSessionMain.call(this);
   this.sessionCache={userInfoFrDB:extend({},specialistDefault),   userInfoFrIP:{}};
-  yield *setRedis(flow, req.sessionID+'_Cache', this.sessionCache, maxUnactivity);
+  var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err) return [err];
   this.GRet.userInfoFrDBUpd=extend({},specialistDefault);
   return [null, [Ou]];
 }
 
-ReqBE.prototype.getSetting=function*(inObj){ 
-  var req=this.req, site=req.site;
+ReqBE.prototype.getSetting=async function(inObj){ 
+  var {req}=this, {site}=req;
   var settingTab=site.TableName.settingTab;
   var Ou={};
   var Str=['boShowTeam'];
@@ -441,8 +440,8 @@ ReqBE.prototype.getSetting=function*(inObj){
   for(var i=0;i<inObj.length;i++){ var name=inObj[i]; Ou[name]=app[name]; }
   return [null, [Ou]];
 }
-ReqBE.prototype.setSetting=function*(inObj){ 
-  var req=this.req, site=req.site; 
+ReqBE.prototype.setSetting=async function(inObj){ 
+  var {req}=this, {site}=req; 
   var settingTab=site.TableName.settingTab;
   var Ou={};
   var StrApp=[],  StrServ=[];

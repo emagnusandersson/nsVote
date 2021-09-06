@@ -5,9 +5,8 @@
 /******************************************************************************
  * reqIndex
  ******************************************************************************/
-app.reqIndex=function*() {
-  var {req, res}=this;
-  var {siteName, site, uSite, wwwSite, strSchemeLong}=req;
+app.reqIndex=async function() {
+  var {req, res}=this, {siteName, site, uSite, wwwSite, strSchemeLong}=req;
   this.site=site;
 
   var boVideo=0;
@@ -176,15 +175,13 @@ app.ReqLoginBack=function(objReqRes){
   Object.assign(this, objReqRes);
   this.mess=[];  this.Str=[];
 }
-ReqLoginBack.prototype.go=function*(){
-  var self=this;
-  var {req, res}=this;
-  var {flow, sessionID, objQS}=req;
+ReqLoginBack.prototype.go=async function(){
+  var self=this, {req, res}=this, {sessionID, objQS}=req;
 
 
   var redisVar=sessionID+'_Login'; // strTmp=wrapRedisSendCommand('get',[redisVar]);
   //this.sessionLogin=JSON.parse(strTmp);
-  this.sessionLogin=yield* getRedis(flow, redisVar,1);
+  var [err,val]=await getRedis(redisVar,1); if(err) {this.finF(err);  return; } this.sessionLogin=val;
   if(!this.sessionLogin) { res.out500('!sessionLogin');  return; }
   var strFun=this.sessionLogin.fun;
   var siteNameLoc=this.sessionLogin.siteName;
@@ -193,15 +190,15 @@ ReqLoginBack.prototype.go=function*(){
   
 
   //getSessionMain.call(this);
-  this.sessionCache=yield* getRedis(flow, req.sessionID+'_Cache',1);
+  var [err,val]=await getRedis(req.sessionID+'_Cache',1); if(err) {this.finF(err);  return; }  this.sessionCache=val;
   if(!this.sessionCache) { res.out500('!sessionCache');  return; } 
   var redisVar=sessionID+'_Cache'; // tmp=wrapRedisSendCommand('expire',[redisVar,maxUnactivity]);
-  var tmp=yield* expireRedis(flow, redisVar, maxUnactivity);
+  var [err]=await expireRedis(redisVar, maxUnactivity); if(err){this.finF(err); return}
 
   if(!this.sessionCache.userInfoFrDB){
     this.sessionCache.userInfoFrDB=extend({},specialistDefault);
     //setSessionMain.call(this);
-    yield *setRedis(flow, req.sessionID+'_Cache', this.sessionCache, maxUnactivity);
+    var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err){this.finF(err); return}
   }
   
 
@@ -216,17 +213,11 @@ ReqLoginBack.prototype.go=function*(){
   if(objQS.state==this.sessionLogin.state) {
     var {id, secret}=req.rootDomain.fb;
     var uToGetToken=UrlToken.fb+"?client_id="+id+"&redirect_uri="+encodeURIComponent(uLoginBack)+"&client_secret="+secret+"&code="+code;
-    var reqStream=requestMod.get(uToGetToken); 
-    //var semCB=0, semY=0, buf; 
-    //var myConcat=concat(function(bufT){
-      //buf=bufT;
-      //if(semY) fiber.run(); semCB=1;
-    //});
-    //reqStream.pipe(myConcat);
-    //if(!semCB){semY=1; Fiber.yield();}
-    var semCB=0, semY=0,  buf, myConcat=concat(function(bufT){ buf=bufT; if(semY) flow.next(); semCB=1;  });    reqStream.pipe(myConcat);    if(!semCB){semY=1; yield}
-    //var params=JSON.parse(buf.toString());
-    try{ var params=JSON.parse(buf.toString()); }catch(e){ console.log(e); res.out500('Error in JSON.parse, '+e); return; }
+    // var reqStream=requestMod.get(uToGetToken); 
+    // var buf=await new Promise(resolve=>{   var myConcat=concat(bT=>resolve(bT));    reqStream.pipe(myConcat);    })
+    // try{ var params=JSON.parse(buf.toString()); }catch(e){ console.log(e); res.out500('Error in JSON.parse, '+e); return; }
+    var [err,response]=await fetch(uToGetToken).toNBP(); if(err){res.out500(err); return;};
+    var [err, params]=await response.json().toNBP(); if(err){res.out500(err); return;};
     self.access_token=params.access_token;
     if('error' in params) { var tmp='Error when getting access token: '+params.error.message; console.log(tmp); res.out500(tmp); return; }
 
@@ -234,17 +225,7 @@ ReqLoginBack.prototype.go=function*(){
     var tmp="The state does not match. You may be a victim of CSRF.";    res.out500(tmp); return
   }
 
-
-  //var  semCB=0, semY=0, boDoExit=0; 
-  //this.getGraph(function(err,res){
-    //if(err){  boDoExit=1; res.out500(err);  }
-    //if(semY) fiber.run(); semCB=1;
-  //});
-  //if(!semCB){semY=1; Fiber.yield();}  if(boDoExit==1) return;
-
-  //var semCB=0, semY=0; 
-  //var err, res; this.getGraph(function(errT,resT){ err=errT; res=resT; if(semY) flow.next(); semCB=1; }); if(!semCB){semY=1; yield;}  if(err){ res.out500(err); return; }
-  var [err, res]=yield* this.getGraph();  if(err){ res.out500(err); return; }
+  var [err, res]=await this.getGraph();  if(err){ res.out500(err); return; }
 
     // interpretGraph
   //this.interpretGraph(function(err,res){ });
@@ -274,27 +255,27 @@ ReqLoginBack.prototype.go=function*(){
   //copySome(this.sessionCache.userInfoFrIP, objGraph, ['gender', 'locale', 'timezone']);
   extend(this.sessionCache.userInfoFrIP, {gender:'male', locale:'', timezone:'0000'});
   //setSessionMain.call(this);
-  yield *setRedis(flow, req.sessionID+'_Cache', this.sessionCache, maxUnactivity);
+  var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err){res.out500(tmp); return;}
   this.IP=IP;this.idIP=idIP;
 
 
   if(['adminFun'].indexOf(strFun)!=-1){
-    var [err, res]=yield* this[strFun]();  if(err){ res.out500(err); return; }
+    var [err, res]=await this[strFun]();  if(err){ res.out500(err); return; }
   }
   
-  var [err, res]=yield* runIdIP.call(this, flow, this.IP, this.idIP);
+  var [err, res]=await runIdIP.call(this, this.IP, this.idIP);
   if(err){ res.out500(err); return; }
   
   extend(this.sessionCache.userInfoFrDB,res); 
   
   //setSessionMain.call(this);
-  yield *setRedis(flow, req.sessionID+'_Cache', this.sessionCache, maxUnactivity);
+  var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err){res.out500(err); return;}
 
     // setCSRFCode
   var CSRFCode=randomHash();
   var redisVar=sessionID+'_CSRFCode'+ucfirst(this.sessionLogin.caller);
   //wrapRedisSendCommand('set',[redisVar, CSRFCode]);    var tmp=wrapRedisSendCommand('expire',[redisVar,maxUnactivity]);
-  yield *setRedis(req.flow, redisVar, CSRFCode, maxUnactivity);
+  var [err]=await setRedis(redisVar, CSRFCode, maxUnactivity); if(err){res.out500(err); return;}
   this.CSRFCode=CSRFCode;
 
   this.finF(null);
@@ -302,8 +283,7 @@ ReqLoginBack.prototype.go=function*(){
 }
 
 ReqLoginBack.prototype.finF=function(err){
-  var self=this;
-  var {req, res}=this;
+  var self=this, {req, res}=this;
   
   var boOK=!Boolean(err);
   var strMess=this.mess.join(', ');
@@ -345,19 +325,19 @@ else {
   res.end(str);
 }
 
-ReqLoginBack.prototype.adminFun=function*(){
+ReqLoginBack.prototype.adminFun=async function(){
   var {req, res, IP, idIP}=this;
-  var {flow}=req, {userTab, adminTab}=this.site.TableName;
+  var {userTab, adminTab}=this.site.TableName;
    
   var Sql=[], Val=[IP, idIP];
   Sql.push("INSERT INTO "+userTab+" (IP,idIP) VALUES (?,?) ON DUPLICATE KEY UPDATE idUser=LAST_INSERT_ID(idUser);");
   Sql.push("INSERT INTO "+adminTab+" VALUES (LAST_INSERT_ID(),0,now()) ON DUPLICATE KEY UPDATE created=VALUES(created);");
   var sql=Sql.join('\n');
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err]; 
+  var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err]; 
   
-  //yield* setRedis(flow, strAppName+'TLastWrite', unixNow());
+  //var [err]=await setRedis(strAppName+'TLastWrite', unixNow());  if(err) return [err];
   return [null,0];
-  //var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) { res.out500(err); callback('exited'); return; }
+  //var [err, results]=await this.myMySql.query(sql, Val); if(err) { res.out500(err); callback('exited'); return; }
   //callback(null,0);
   
   
@@ -367,18 +347,15 @@ ReqLoginBack.prototype.adminFun=function*(){
   //});
 }
 
-ReqLoginBack.prototype.getGraph=function*(){
-  var req=this.req, flow=req.flow, res=this.res;
+ReqLoginBack.prototype.getGraph=async function(){
+  var {req, res}=this;
     // With the access_token you can get the data about the user
   var uGraph=UrlGraph.fb+"?access_token="+this.access_token+'&fields=id,name,picture,locale,timezone,gender'; //,verified
-  var reqStream=requestMod.get(uGraph);
-  //var myConcat=concat(function(buf){
-    //var objGraph=JSON.parse(buf.toString());
-    //self.objGraph=objGraph;
-  //});
-  //reqStream.pipe(myConcat);
-  var buf, myConcat=concat(function(bufT){ buf=bufT; flow.next();  });    reqStream.pipe(myConcat);    yield;
-  var objGraph=JSON.parse(buf.toString());
+  // var reqStream=requestMod.get(uGraph);
+  // var buf=await new Promise(resolve=>{   var myConcat=concat(bT=>resolve(bT));    reqStream.pipe(myConcat);     })
+  // var objGraph=JSON.parse(buf.toString());
+  var [err,response]=await fetch(uGraph).toNBP(); if(err) return [err];
+  var [err, objGraph]=await response.json().toNBP(); if(err) return [err];
   this.objGraph=objGraph;
   return [null,''];
 }
@@ -404,8 +381,8 @@ function parseSignedRequest(signedRequest, secret) {
 }
 
 
-app.deleteOne=function*(site,user_id){ // 
-  var {req}=this, {flow}=req, {userTab}=site.TableName;
+app.deleteOne=async function(site,user_id){ // 
+  var {req}=this, {userTab}=site.TableName;
   var Ou={};
 
   var Sql=[], Val=[];
@@ -413,26 +390,25 @@ app.deleteOne=function*(site,user_id){ //
   Sql.push("DELETE FROM "+userTab+" WHERE idIP=?;"); Val.push(user_id);
   Sql.push("SELECT count(*) AS n FROM "+userTab+";");
   var sql=Sql.join('\n');
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) return [err];
+  var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
   var nTotO=Number(results[0][0].n);
   var c=results[1].affectedRows;
   site.nUser=Number(results[2][0].n);
   if(nTotO!=site.nUser) site.boGotNewVoters=1;
 
 
-  yield* setRedis(flow, strAppName+'TLastWrite', unixNow());  
+  var [err]=await setRedis(strAppName+'TLastWrite', unixNow()); if(err) return [err];
 
 
   return [null, c];
 }
 
-app.reqDataDelete=function*(){  //
-  var {req, res}=this;
-  var {flow, objQS, uSite}=req;
+app.reqDataDelete=async function(){  //
+  var {req, res}=this, {objQS, uSite}=req;
 
   if(req.method=='GET' && boDbg){ var objUrl=url.parse(req.url), qs=objUrl.query||'', strData=qs; } else 
   if(req.method=='POST'){
-    var buf, myConcat=concat(function(bufT){ buf=bufT; flow.next();  });    req.pipe(myConcat);    yield;
+    var buf=await new Promise(resolve=>{   var myConcat=concat(bT=>resolve(bT));    req.pipe(myConcat);   })
     var strData=buf.toString();
   }
   else {res.outCode(400, "Post request wanted"); return; }
@@ -448,26 +424,25 @@ app.reqDataDelete=function*(){  //
   var StrMess=[];
   for(var i=0;i<SiteName.length;i++){
     var siteName=SiteName[i], site=Site[siteName];
-    var [err,c]=yield* deleteOne.call(this, site, user_id);
+    var [err,c]=await deleteOne.call(this, site, user_id);
     if(c) StrMess.push(siteName+' ('+c+')');
   }
 
   var mess='User '+user_id+':';     if(StrMess.length) mess+=' deleted on: '+StrMess.join(', '); else mess+=' not found.';
   console.log('reqDataDelete: '+mess);
   var confirmation_code=genRandomString(32);
-  yield *setRedis(flow, confirmation_code+'_DeleteRequest', mess, timeOutDeleteStatusInfo); //3600*24*30
+  var [err]=await setRedis(confirmation_code+'_DeleteRequest', mess, timeOutDeleteStatusInfo); if(err) { res.out500(err); return; } //3600*24*30
 
   res.setHeader('Content-Type', MimeType.json); 
   //res.end("{ url: '"+uSite+'/'+leafDataDeleteStatus+'?confirmation_code='+confirmation_code+"', confirmation_code: '"+confirmation_code+ "' }");
   res.end(JSON.stringify({ url: uSite+'/'+leafDataDeleteStatus+'?confirmation_code='+confirmation_code, confirmation_code }));
 }
 
-app.reqDataDeleteStatus=function*(){
-  var {req, res}=this;
-  var {flow, site, objQS, uSite}=req;
+app.reqDataDeleteStatus=async function(){
+  var {req, res}=this, {site, objQS, uSite}=req;
   var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=querystring.parse(qs);
   var confirmation_code=objQS.confirmation_code||'';
-  var [err,mess]=yield* cmdRedis(flow, 'GET', [confirmation_code+'_DeleteRequest']); 
+  var [err,mess]=await cmdRedis('GET', [confirmation_code+'_DeleteRequest']); 
   if(err) {var mess=err.message;}
   else if(mess==null) {
     var [t,u]=getSuitableTimeUnit(timeOutDeleteStatusInfo);
@@ -483,9 +458,8 @@ app.reqDataDeleteStatus=function*(){
 /******************************************************************************
  * reqStatic
  ******************************************************************************/
-app.reqStatic=function*() {
-  var {req, res}=this;
-  var {flow, siteName, pathName}=req;
+app.reqStatic=async function() {
+  var {req, res}=this, {siteName, pathName}=req;
   
   //var RegAllowedOriginOfStaticFile=[RegExp("^https\:\/\/(closeby\.market|gavott\.com)")];
   //var RegAllowedOriginOfStaticFile=[RegExp("^http\:\/\/(localhost|192\.168\.0)")];
@@ -504,7 +478,7 @@ app.reqStatic=function*() {
   var keyCache=pathName; if(pathName==='/'+leafSiteSpecific || pathName==='/'+leafManifest) keyCache=siteName+keyCache; 
   if(!(keyCache in CacheUri)){
     var filename=pathName.substr(1);
-    var [err]=yield* readFileToCache(flow, filename);
+    var [err]=await readFileToCache(filename);
     if(err) {
       if(err.code=='ENOENT') {res.out404(); return;}
       if('host' in req.headers) console.error('Faulty request to '+req.headers.host+" ("+pathName+")");
@@ -529,12 +503,10 @@ app.reqStatic=function*() {
 /******************************************************************************
  * reqMonitor
  ******************************************************************************/
-app.reqMonitor=function*(){
-  var {req, res}=this;
-  var {flow, site}=req; this.Str=[];
+app.reqMonitor=async function(){
+  var {req, res}=this, {site, objQS}=req; this.Str=[];
   var timeCur=unixNow(); boRefresh=0;   if(site.timerNUserLast<timeCur-5*60) {boRefresh=1; site.timerNUserLast=timeCur;}
   
-  var siteName=req.siteName, site=req.site, objQS=req.objQS;
   var userTab=site.TableName.userTab;
   //var fiber = Fiber.current; 
 
@@ -544,7 +516,7 @@ app.reqMonitor=function*(){
     Sql.push("SELECT count(*) AS n FROM "+userTab+";");
 
     var sql=Sql.join('\n'), Val=[];
-    var [err, results]=yield* this.myMySql.query(flow, sql, Val); if(err) { res.out500(err); return; }
+    var [err, results]=await this.myMySql.query(sql, Val); if(err) { res.out500(err); return; }
     site.nUser=results[0].n;
   }
   var nUser=site.nUser;
@@ -576,7 +548,7 @@ app.reqMonitor=function*(){
  ******************************************************************************/
 app.SetupSql=function(){
 }
-app.SetupSql.prototype.createTable=function*(flow, siteName, boDropOnly){
+app.SetupSql.prototype.createTable=async function(siteName, boDropOnly){
   var site=Site[siteName]; 
   
   var SqlTabDrop=[], SqlTab=[];
@@ -667,14 +639,14 @@ app.SetupSql.prototype.createTable=function*(flow, siteName, boDropOnly){
   else var Sql=array_merge(SqlTabDrop, SqlTab);
   
   var strDelim=';', sql=Sql.join(strDelim+'\n')+strDelim, Val=[];
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val);
+  var [err, results]=await this.myMySql.query(sql, Val);
   writeMessTextOfMultQuery(Sql, err, results);
   if(err) {  return [err]; }
   return [null];
 }
 
 
-app.SetupSql.prototype.createFunction=function*(flow, siteName, boDropOnly){
+app.SetupSql.prototype.createFunction=async function(siteName, boDropOnly){
   var site=Site[siteName]; 
   
   var SqlFunctionDrop=[], SqlFunction=[];
@@ -720,14 +692,14 @@ app.SetupSql.prototype.createFunction=function*(flow, siteName, boDropOnly){
   
   
   var strDelim=';', sql=Sql.join(strDelim+'\n')+strDelim, Val=[];
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val);
+  var [err, results]=await this.myMySql.query(sql, Val);
   writeMessTextOfMultQuery(Sql, err, results);
   if(err) {  return [err]; }
   return [null];
 }
 
 
-app.SetupSql.prototype.funcGen=function*(flow, boDropOnly){
+app.SetupSql.prototype.funcGen=async function(boDropOnly){
   var SqlFunction=[], SqlFunctionDrop=[];
   SqlFunctionDrop.push("DROP PROCEDURE IF EXISTS copyTable");
   SqlFunction.push(`CREATE PROCEDURE copyTable(INameN varchar(128),IName varchar(128))
@@ -741,7 +713,7 @@ app.SetupSql.prototype.funcGen=function*(flow, boDropOnly){
   else var Sql=array_merge(SqlFunctionDrop, SqlFunction);
   
   var strDelim=';', sql=Sql.join(strDelim+'\n')+strDelim, Val=[];
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val);
+  var [err, results]=await this.myMySql.query(sql, Val);
   writeMessTextOfMultQuery(Sql, err, results);
   if(err) {  return [err]; }
   return [null];
@@ -750,7 +722,7 @@ app.SetupSql.prototype.funcGen=function*(flow, boDropOnly){
 
 
 
-app.SetupSql.prototype.createDummies=function*(flow, siteName){
+app.SetupSql.prototype.createDummies=async function(siteName){
   var site=Site[siteName]; 
   
   var Sql=[];
@@ -840,7 +812,7 @@ app.SetupSql.prototype.createDummies=function*(flow, siteName){
 
 
   var sql="SELECT MAX(idUser) AS nLast FROM "+userTab, Val=[];
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val);  if(err) {  return [err]; }
+  var [err, results]=await this.myMySql.query(sql, Val);  if(err) {  return [err]; }
   var nLast=results[0].nLast;
   var nFirst=nLast===null?1:nLast+1;
   
@@ -920,17 +892,17 @@ app.SetupSql.prototype.createDummies=function*(flow, siteName){
   //Sql.push("INSERT INTO "+choiseTab+" (idUser,choise) VALUES "+tmp);
 
   var strDelim=';', sql=Sql.join(strDelim+'\n')+strDelim, Val=[];
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val);  if(err) {  return [err]; }
+  var [err, results]=await this.myMySql.query(sql, Val);  if(err) {  return [err]; }
   return [null];
 }
 
 
-app.SetupSql.prototype.createDummy=function*(flow, siteName){
+app.SetupSql.prototype.createDummy=async function(siteName){
   var site=Site[siteName]; 
   return [null];
 }
 
-app.SetupSql.prototype.truncate=function*(flow, siteName){
+app.SetupSql.prototype.truncate=async function(siteName){
   var site=Site[siteName]; 
   var Sql=[]; 
 
@@ -954,26 +926,26 @@ app.SetupSql.prototype.truncate=function*(flow, siteName){
   Sql.push('SET FOREIGN_KEY_CHECKS=1');
   
   var strDelim=';', sql=Sql.join(strDelim+'\n')+strDelim, Val=[];
-  var [err, results]=yield* this.myMySql.query(flow, sql, Val);
+  var [err, results]=await this.myMySql.query(sql, Val);
   writeMessTextOfMultQuery(Sql, err, results);
   if(err) {  return [err]; }
   return [null];
 }
 
 
-app.SetupSql.prototype.populateSetting=function*(flow, siteName){
+app.SetupSql.prototype.populateSetting=async function(siteName){
   var site=Site[siteName]; 
   var Sql=[]; 
   var {TableName}=site, {settingTab}=TableName;
 
   //var strDelim=';', sql=Sql.join(strDelim+'\n')+strDelim, Val=[];
-  //var [err, results]=yield* this.myMySql.query(flow, sql, Val);  if(err) {  return [err]; }
+  //var [err, results]=await this.myMySql.query(sql, Val);  if(err) {  return [err]; }
   return [null];
 }
 
 
   // Called when --sql command line option is used
-app.SetupSql.prototype.doQuery=function*(flow, strCreateSql){
+app.SetupSql.prototype.doQuery=async function(strCreateSql){
   if(StrValidSqlCalls.indexOf(strCreateSql)==-1){var tmp=strCreateSql+' is not valid input, try any of these: '+StrValidSqlCalls.join(', '); return [new Error(tmp)]; }
   var Match=RegExp("^(drop|create)?(.*?)$").exec(strCreateSql);
   if(!Match) { debugger;  return [new Error("!Match")]; }
@@ -983,12 +955,12 @@ app.SetupSql.prototype.doQuery=function*(flow, strCreateSql){
   else if(Match[1]=='create')  { strMeth='create'+strMeth; }
   
   if(strMeth=='createFunction'){ 
-    var [err]=yield* this.funcGen(flow, boDropOnly); if(err){  return [err]; }  // Create common functions
+    var [err]=await this.funcGen(boDropOnly); if(err){  return [err]; }  // Create common functions
   }
   for(var iSite=0;iSite<SiteName.length;iSite++){
     var siteName=SiteName[iSite];
     console.log(siteName);
-    var [err]=yield* this[strMeth](flow, siteName, boDropOnly);  if(err){  return [err]; }
+    var [err]=await this[strMeth](siteName, boDropOnly);  if(err){  return [err]; }
   }
   return [null];
 }
