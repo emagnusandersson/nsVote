@@ -2,7 +2,7 @@
 
 //var app;  if(typeof window!=='undefined') app=window; else if(typeof global!=='undefined') app=global; else app=self;  // if browser else if server else serviceworker
 
-var app=globalThis;
+globalThis.app=globalThis;
 
 Promise.prototype.toNBP=function(){   return this.then(a=>{return [null,a];}).catch(e=>{return [e];});   }  // toNodeBackPromise
 
@@ -317,6 +317,11 @@ app.parseQS=function(str){
     params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
   }
   return params;
+}
+app.parseQS2=function(qs){
+  var objQS={}, objTmp=new URLSearchParams(qs);
+  for(const [name, value] of objTmp) {  objQS[name]=value;  }
+  return objQS;
 }
 
 app.filterPropKeyByB=function(Prop, iBit){ // Check all Prop[strKey].b[iBit] for each strKey. Create an array with all strKey where Prop[strKey].b[iBit] is true.

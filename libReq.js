@@ -2,6 +2,8 @@
 "use strict"
 
 
+//function\(([\w,]+)\)\s*\{\s*return *
+
 /******************************************************************************
  * reqIndex
  ******************************************************************************/
@@ -84,7 +86,7 @@ xmlns:fb="http://www.facebook.com/2008/fbml">`);
 
 
   var uCommon=''; if(wwwCommon) uCommon=req.strSchemeLong+wwwCommon;
-  Str.push(`<script>var app=window;</script>`);
+  Str.push(`<script>window.app=window;</script>`);
   //Str.push(`<base href="`+uCommon+`">`);
 
   Str.push(`<style>
@@ -108,17 +110,17 @@ h1.mainH1 { box-sizing:border-box; margin:0em auto; width:100%; max-width:var(--
 
     // Include site specific JS-files
   var uSite=req.strSchemeLong+wwwSite;
-  var keyCache=siteName+'/'+leafSiteSpecific, vTmp=boDbgT?0:CacheUri[keyCache].eTag;  Str.push('<script src="'+uSite+'/'+leafSiteSpecific+'?v='+vTmp+'" async></script>');
+  var keyCache=siteName+'/'+leafSiteSpecific, vTmp=boDbgT?0:CacheUri[keyCache].eTag;  Str.push('<script type="module" src="'+uSite+'/'+leafSiteSpecific+'?v='+vTmp+'" async></script>');
 
     // Include JS-files
   var StrTmp=['filter.js', 'lib.js', 'libClient.js', 'client.js', 'lang/en.js'];
   for(var i=0;i<StrTmp.length;i++){
-    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push('<script src="'+uCommon+pathTmp+'?v='+vTmp+'" async></script>');
+    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push('<script type="module" src="'+uCommon+pathTmp+'?v='+vTmp+'" async></script>');
   }
 
     // Include plugins
   Str.push(`<script>
-var app=window;
+window.app=window;
 var CreatorPlugin={};
 </script>`);
 
@@ -146,11 +148,12 @@ var CreatorPlugin={};
 <noscript><div style="text-align:center">You don't have javascript enabled, so this app won't work.</div></noscript>
 </div>`);
 
-  Str.push(`\n<script type="text/javascript" language="JavaScript" charset="UTF-8">
-boTLS=`+JSON.stringify(req.boTLS)+`;
-siteName=`+JSON.stringify(siteName)+`;
-</script>
+//   Str.push(`\n<script >
+// boTLS=`+JSON.stringify(req.boTLS)+`;
+// siteName=`+JSON.stringify(siteName)+`;
+// </script>`);
 
+Str.push(`
 <form id=OpenID style="display:none">
 <label name=OpenID>OpenID</label><input type=text name=OpenID>
 <button type=submit name=submit>Go</button> 
@@ -440,8 +443,10 @@ app.reqDataDelete=async function(){  //
 
 app.reqDataDeleteStatus=async function(){
   var {req, res}=this, {site, objQS, uSite}=req;
-  var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=querystring.parse(qs);
-  var confirmation_code=objQS.confirmation_code||'';
+  //var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=querystring.parse(qs);
+  //var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=parseQS2(qs);
+  //var confirmation_code=objQS.confirmation_code||'';
+  var {confirmation_code=''}=objQS;
   var [err,mess]=await cmdRedis('GET', [confirmation_code+'_DeleteRequest']); 
   if(err) {var mess=err.message;}
   else if(mess==null) {

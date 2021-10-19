@@ -1,52 +1,53 @@
 
    // Created by Erik Magnus Andersson 2018
    
-sin=Math.sin; cos=Math.cos; tan=Math.tan; atan=Math.atan; atan2=Math.atan2; sqrt=Math.sqrt; abs=Math.abs; max=Math.max; min=Math.min; round=Math.round;
+//sin=Math.sin; cos=Math.cos; tan=Math.tan; atan=Math.atan; atan2=Math.atan2; sqrt=Math.sqrt; abs=Math.abs; max=Math.max; min=Math.min; round=Math.round;
+copySome(app,Math,["sin", "cos", "tan", "atan", "atan2", "sqrt", "abs", "max", "min", "round"]);
 
   //
   // Note! Prefixes: e=elementwise, v=vectorwise:
   //
-sqr=function(x){return x*x;}
-hypot=function(xy){return sqrt(xy[0]*xy[0]+xy[1]*xy[1]);}
-fix=function(x){return x|0;} // How does this work: "Bitwise OR" only makes sense on integers, so this operation casts the value to an integer.
-sign=function(x) {  return (x > 0) - (x < 0);}
-vCopy=function(v){ return v.concat([]);}
-eSqr=function(v){ return v.map(function(x) { return x*x; }); }
-eMult=function(v,w){ return v.map(function(x,i) { return x*w[i]; }); }
-eMultSc=function(v,k){ return v.map(function(x) { return x*k; }); }
-eAdd=function(v,w){ return v.map(function(x,i) { return x+w[i]; }); }
-eAddSc=function(v,k){ return v.map(function(x) { return x+k; }); }
-eSub=function(v,w){ return v.map(function(x,i) { return x-w[i]; }); }
-eSubSc=function(v,k){ return v.map(function(x) { return x-k; }); }
-eAssign=function(v,ind,w){ // Note! changes v
+app.sqr=x=>x*x;
+app.hypot=xy=>sqrt(xy[0]*xy[0]+xy[1]*xy[1]);
+app.fix=x=>x|0; // How does this work: "Bitwise OR" only makes sense on integers, so this operation casts the value to an integer.
+app.sign=x=>(x>0)-(x<0);
+app.vCopy=v=>v.concat([]);
+app.eSqr=v=>v.map(x=>x*x);
+app.eMult=(v,w)=>v.map((x,i)=>x*w[i]);
+app.eMultSc=(v,k)=>v.map(x=>x*k);
+app.eAdd=(v,w)=>v.map((x,i)=>x+w[i]);
+app.eAddSc=(v,k)=>v.map(x=>x+k);
+app.eSub=(v,w)=>v.map((x,i)=>x-w[i]);
+app.eSubSc=(v,k)=>v.map(x=>x-k);
+app.eAssign=function(v,ind,w){ // Note! changes v
   var len=ind.length;
   for(var i=0;i<len;i++)   v[ind[i]]=w[i];
   return v;
 }
-eInd=function(V,ind) { // return a vector with values at indexes ind
+app.eInd=function(V,ind) { // return a vector with values at indexes ind
   var n=ind.length, els=Array(n);
   ind.forEach(function(x, i) { els[i]=V[x]; });
   return els;
 }
- 
-vEnd=function(V){return V[V.length-1];}
-vSum=function(V){var s=0; V.forEach(function(x){s+=x;}); return s; }
-vDot=function(V,W){var s=0; V.forEach(function(x,i){s+=x*W[i];}); return s; }
-find=function(V) { // Returns indexes of nonzero elements
+
+app.vEnd=V=>V[V.length-1];
+app.vSum=function(V){var s=0; V.forEach(function(x){s+=x;}); return s; }
+app.vDot=function(V,W){var s=0; V.forEach(function(x,i){s+=x*W[i];}); return s; }
+app.find=function(V) { // Returns indexes of nonzero elements
   var W=[];
   V.forEach(function(x,i) { if(x) W.push(i);});
   return W;
 }
-Mat={};
-Mat.eSqr=function(M){ return M.map(function(V) { return eSqr(V); }); }
-Mat.eMult=function(M,N){ return M.map(function(V,i) { return eMult(V,N[i]); }); }
-Mat.eMultSc=function(M,k){ return M.map(function(V) { return eMultSc(V,k); }); }
-Mat.eAdd=function(M,N){ return M.map(function(V,i) { return eAdd(V,N[i]); }); }
-Mat.eAddSc=function(M,k){ return M.map(function(V) { return eAddSc(V,k); }); }
-Mat.eSub=function(M,N){ return M.map(function(V,i) { return eSub(V,N[i]); }); }
-Mat.eSubSc=function(M,k){ return M.map(function(V) { return eSubSc(V,k); }); }
-Mat.Rot=function(a){ return [[cos(a), -sin(a)],[sin(a), cos(a)]];}
-Mat.copy=function(M){ return M.map(function(V) { return vCopy(V); }); }
+app.Mat={};
+Mat.eSqr=M=>M.map(V=>eSqr(V));
+Mat.eMult=(M,N)=>M.map((V,i)=>eMult(V,N[i]));
+Mat.eMultSc=(M,k)=>M.map(V=>eMultSc(V,k));
+Mat.eAdd=(M,N)=>M.map((V,i)=>eAdd(V,N[i]));
+Mat.eAddSc=(M,k)=>M.map(V=>eAddSc(V,k));
+Mat.eSub=(M,N)=>M.map((V,i)=>eSub(V,N[i]));
+Mat.eSubSc=(M,k)=>M.map(V=>eSubSc(V,k));
+Mat.Rot=a=>[[cos(a), -sin(a)],[sin(a), cos(a)]];
+Mat.copy=M=>M.map(V=>vCopy(V));
 Mat.getColInd=function(M,ind) { // return a Matrix with columns at indexes ind
   var m=M.length,n=ind.length, O=Array(m);
   for(var i=0;i<m;i++){ O[i]=Array(n); for(var j=0;j<n;j++){ O[i][j]=M[i][ind[j]]; } }
@@ -61,15 +62,15 @@ Mat.setCol=function(M,j,V){ //obs changes M
   var len=M.length;   for(var i=0;i<len;i++){  M[i][j]=V[i]; }
 }
 Mat.createN1=function(V){   var len=V.length, O=Array(len);   for(var i=0;i<len;i++){  O[i]=[V[i]]; }  return O;  }
-repVal=function(val,n) {    var Out=Array(n);  for(var i=0;i<n;i++) Out[i]=val;  return Out;   }
-repCol=function(V,nCol) {  
+app.repVal=function(val,n) {    var Out=Array(n);  for(var i=0;i<n;i++) Out[i]=val;  return Out;   }
+app.repCol=function(V,nCol) {  
   var nRow=V.length, Out=Array(nRow);
   for(var i=0;i<nRow;i++){
     Out[i]=Array(nCol);   for(var j=0;j<nCol;j++){ Out[i][j]=V[i]; }
   }
   return Out;
 }
-repRow=function(V,nRow) {  
+app.repRow=function(V,nRow) {  
   var nCol=V.length, Out=Array(nRow);
   for(var i=0;i<nRow;i++){
     Out[i]=Array(nCol);  for(var j=0;j<nCol;j++){ Out[i][j]=V[j]; }
