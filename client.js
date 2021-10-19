@@ -269,7 +269,7 @@ var loginPopExtend=function(el){
     var arrQ=['IP='+IP, 'fileReturn='+encodeURIComponent(uLogin),'fun='+strType+'Fun', 'siteName='+siteName];
     if(IP==='openid') arrQ.push('openid_identifier='+encodeURIComponent(openid));
     var uPop=uLogin+'?'+arrQ.join('&');
-    el.win=window.open(uPop, '_blank', 'width=580,height=400');
+    el.win=window.open(uPop);//, '_blank', 'width=580,height=400'
 
     clearInterval(timerClosePoll);
     timerClosePoll = setInterval(function() { if(el.win.closed){ clearInterval(timerClosePoll); pendingMess.hide(); cancelMess.show(); }  }, 500);  
@@ -439,7 +439,7 @@ var voterListDivExtend=function(el){
   }
   el.load=function(){ 
     setMess('... fetching data ... ',5,true);
-    var vec=[['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset,rowCount:el.rowCount},el.getListRet]];   majax(vec);
+    var vec=[['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset,rowCount:maxVoterDisp},el.getListRet]];   majax(vec);
   }
   el.setUpCondRet=function(data){ 
     var tmp=data.curTime;   if(typeof tmp!="undefined")  curTime=tmp;
@@ -472,7 +472,7 @@ var voterListDivExtend=function(el){
   el.setCell=function(){
     var tr=[...tBody.querySelectorAll('tr')];
     for(var i=0;i<nMTab;i++){ 
-      var elR=tr[i]; elR.iMTab=i;
+      var elR=tr[i]; //elR.iMTab=i;
       [...elR.querySelectorAll('td')].forEach(function(ele,j){
         var strName=ele.attr('name'), tmpObj=(strName in el)?el[strName]:emptyObj;
         var tmp=''; if('sortF' in tmpObj) tmp=tmpObj.sortF(i,ele);  else tmp=MTab[i][strName];     ele.valSort=tmp;
@@ -491,6 +491,7 @@ var voterListDivExtend=function(el){
         if('crF' in tmpObj) tmpObj.crF(td);  
         row.append(td);  //,'word-break':'break-all'
       }
+      row.iMTab=i;
       tBody.append(row);
     }
     //var tmp='td';
@@ -528,7 +529,7 @@ var voterListDivExtend=function(el){
   var indSortedLast=-1, strSortedLast=-1;
   app.MTab=[];
   app.nMTab=0;
-  var offset=0; el.rowCount=maxVoterDisp;
+  var offset=0; //el.rowCount=maxVoterDisp;
   
   var table=createElement('table').css({display:'inline-table',background:'#fff'});
   var tBody=createElement('tbody');  
@@ -537,8 +538,8 @@ var voterListDivExtend=function(el){
   table.show();
 
   
-  var butPrev=createElement('button').myAppend('Prev page').on('click', function(){ offset-=el.rowCount; offset=offset>=0?offset:0; el.load();});
-  var butNext=createElement('button').myAppend('Next page').on('click', function(){ offset+=el.rowCount; el.load();});
+  var butPrev=createElement('button').myAppend('Prev page').on('click', function(){ offset-=maxVoterDisp; offset=offset>=0?offset:0; el.load();});
+  var butNext=createElement('button').myAppend('Next page').on('click', function(){ offset+=maxVoterDisp; el.load();});
   var spanInfo=createElement('span');
   var spanPrevNext=createElement('span').myAppend(butPrev,butNext).css({display:'inline-block'});
   var divInfo=createElement('div').myAppend(spanInfo,spanPrevNext);
@@ -821,19 +822,14 @@ var voterInfoDivExtend=function(el){
   
   var tableThumb=createElement('canvas').css({'margin-right':'1.5em',border:'1px solid grey','vertical-align':'top'}).on('click', function(){voterListButtonClick();});
 
+
   var tmpf=function(iDiff){
-    var trt;
+    var iTmp=el.tr.iMTab+iDiff;
     if(iDiff==1) {
-      trt=el.tr.nextElementSibling;
-      //if(trt.length==0 || trt.css('display')=='none') trt=el.tr.parentNode.children[0];
-      if(!trt) trt=el.tr.parentNode.children[0];
+      if(iTmp==nMTab) iTmp=0;
     } else {
-      trt=el.tr.previousElementSibling;
-      //if(trt.length==0) trt=voterListDiv.tBody.children[nMTab-1];
-      if(!trt) trt=voterListDiv.tBody.children[nMTab-1];
+      if(iTmp==-1) iTmp=nMTab-1;
     }
-    var iTmp=trt.iMTab;
-    //el.setContainers(MTab[iTmp].idIP);
     el.setContainers(iTmp);
   }
   var buttonPrev=createElement('button').myText('▲').on('click', function(){tmpf(-1);}).css({display:'block','margin':'0em'});  
@@ -858,7 +854,7 @@ var voterInfoDivExtend=function(el){
 
 
 var loadTabNHist=function(){
-  var vec=[['setUp',{}], ['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet], ['getList',{offset:0,rowCount:voterListDiv.rowCount},voterListDiv.getListRet], ['getHist',{},getHistRet]];   majax(vec);
+  var vec=[['setUp',{}], ['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet], ['getList',{offset:0,rowCount:maxVoterDisp},voterListDiv.getListRet], ['getHist',{},getHistRet]];   majax(vec);
     
   setMess('... fetching data ... ',0,true);
 }
@@ -1008,7 +1004,7 @@ var boAppFB=site.typeApp=='fb';
 var boAppOI=site.typeApp=='oi';
 
 
-
+var {boTLS,siteName}=site;
 var strScheme='http'+(boTLS?'s':''),    strSchemeLong=strScheme+'://',    uSite=strSchemeLong+site.wwwSite,     uCommon=strSchemeLong+wwwCommon,    uBE=uSite+"/"+leafBE;
 
 var uLogin=uSite+"/"+leafLogin;
@@ -1300,7 +1296,7 @@ columnSorterDiv.setVis=function(){
 
 
 
-var vec=[['specSetup',{}],['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset:0,rowCount:voterListDiv.rowCount},voterListDiv.getListRet],['getHist',null,getHistRet]];   majax(vec);
+var vec=[['specSetup',{}],['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset:0,rowCount:maxVoterDisp},voterListDiv.getListRet],['getHist',null,getHistRet]];   majax(vec);
 setMess('... fetching data... ',0,true);
 
 

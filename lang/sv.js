@@ -1,4 +1,4 @@
-langHtml={
+globalThis.langHtml={
 
 Cancel:'Avbryt',
 Yes:'Ja',

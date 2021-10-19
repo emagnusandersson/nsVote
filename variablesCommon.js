@@ -5,79 +5,84 @@
 //name='prog';                         if(!isset(name)){   if((tmp=getenv(name))!==false) name=tmp; else name='meet';   }
 
 
+app.two31=Math.pow(2,31);  app.intMax=two31-1;  app.intMin=-two31;
+app.sPerDay=24*3600;  app.sPerMonth=sPerDay*30;
 
 
-boAppIP=typeApp=='ip'; // Some handy variables
-boAppFB=typeApp=='fb';
-boAppOI=typeApp=='oi';
-boAppGoogle=typeApp=='google';
+var fsWebRootFolder=process.cwd();
+var flLibFolder='lib';
+var flFoundOnTheInternetFolder=flLibFolder+"/foundOnTheInternet";
 
-
-
-
-
-two31=Math.pow(2,31);  intMax=two31-1;  intMin=-two31;
-sPerDay=24*3600;  sPerMonth=sPerDay*30;
-
-
-
-fsWebRootFolder=process.cwd();
-flLibFolder='lib';
-
-flFoundOnTheInternetFolder=flLibFolder+"/foundOnTheInternet";
-flImageFolder=flLibFolder+"/image";  
+app.flImageFolder=flLibFolder+"/image";  
 
   // Files: 
-leafBE='be.json';
-leafLogin="login.html";  
-leafLoginBack="loginBack.html";  
-leafUploadFront="upload.html"; 
-leafSiteSpecific='siteSpecific.js';
-leafPayNotify="payNotify.js";
-leafManifest='manifest.json';
-leafDataDelete='dataDelete';
-leafDataDeleteStatus='dataDeleteStatus';
-leafDeAuthorize='deAuthorize';
+extend(app,{
+leafBE:'be.json',
+leafLogin:"login.html",  
+leafLoginBack:"loginBack.html",  
+leafUploadFront:"upload.html", 
+leafSiteSpecific:'siteSpecific.js',
+leafPayNotify:"payNotify.js",
+leafManifest:'manifest.json',
+leafDataDelete:'dataDelete',
+leafDataDeleteStatus:'dataDeleteStatus',
+leafDeAuthorize:'deAuthorize',
+})
+
+
+
+extend(app,{
+boAppIP:typeApp=='ip', // Some handy variables
+boAppFB:typeApp=='fb',
+boAppOI:typeApp=='oi',
+boAppGoogle:typeApp=='google',
+
+maxUnactivity:3600*24,
+specialistDefault:{voter:0,admin:0},
+
+maxGroupsInFeat:20,
+preDefault:"u.",
+version:'002',
+auto_increment_increment:1,
+
+maxVoterDisp:10,
+maxVotesDispInCol:2,
+enumIP:['openid', 'fb', 'google'],
+
+enumGender:['male','female'],
+
+arrOptionDefault:['yes','no'],
+
+})
+
+
 
 
 
    // DB- tables
-StrTableKey=["setting","admin","user","userSnapShot"]; //,"choise","choiseSnapShot"
-StrViewsKey=[]; 
-TableNameProt={};for(var i=0;i<StrTableKey.length;i++) TableNameProt[StrTableKey[i]]='';
-ViewNameProt={};for(var i=0;i<StrViewsKey.length;i++) ViewNameProt[StrViewsKey[i]]='';
+var StrTableKey=["setting","admin","user","userSnapShot"]; //,"choise","choiseSnapShot"
+var StrViewsKey=[]; 
+app.TableNameProt={};for(var i=0;i<StrTableKey.length;i++) TableNameProt[StrTableKey[i]]='';
+app.ViewNameProt={};for(var i=0;i<StrViewsKey.length;i++) ViewNameProt[StrViewsKey[i]]='';
 
 
 
 
 
-maxUnactivity=3600*24;
-specialistDefault={voter:0,admin:0};
 
-selEnumF=function(name){  return name+"-1";  };
-selTimeF=function(name){  return "UNIX_TIMESTAMP("+name+")";  };
-updEnumBoundF=function(name,v){ v=bound( v, 0, this[name].Enum.length-1)+1;   return ['?', v];  };
-updTimeF=function(name,v){  return [  'FROM_UNIXTIME(?)', v ];  };
+app.selEnumF=name=>name+"-1";
+app.selTimeF=name=>"UNIX_TIMESTAMP("+name+")";
+app.updEnumBoundF=function(name,v){ v=bound( v, 0, this[name].Enum.length-1)+1;   return ['?', v];  };
+app.updTimeF=(name,v)=>['FROM_UNIXTIME(?)', v];
 
 
 
-    //     0       1         2        3       4       5       6       7         8             9   
-bName=['IPData','input','DBSelOne','DBSel','block','label','help','userTab','notNull', 'userTabIndex'];    // 'block' and 'label' concerns voterInfoDiv,
-bFlip=array_flip(bName);
+       //     0       1         2        3       4       5       6       7         8             9   
+app.bName=['IPData','input','DBSelOne','DBSel','block','label','help','userTab','notNull', 'userTabIndex'];    // 'block' and 'label' concerns voterInfoDiv,
+app.bFlip=array_flip(bName);
 
 
-maxGroupsInFeat=20;
-preDefault="u.";
-version='002';
-auto_increment_increment=1;
 
-maxVoterDisp=10;
-maxVotesDispInCol=2;
-enumIP=['openid', 'fb', 'google'];
-
-enumGender=['male','female'];
-
-arrOptionDefault=['yes','no'];
 
 
 /***********************************************************************************
@@ -113,8 +118,8 @@ Plugin.general=function(){
   Prop.choise.Enum=this.Option||arrOptionDefault;
   
   Prop.choise.condBValueF=function(name, val){  return val;}; 
-  Prop.choise.binKeyF=function(name){ return "choise";};
-  Prop.choise.binValueF=function(name){ return "SUM(choise IS NOT NULL)";};
+  Prop.choise.binKeyF=name=>"choise";
+  Prop.choise.binValueF=name=>"SUM(choise IS NOT NULL)";
 
   //var tmpf=function(name, val){ return "UNIX_TIMESTAMP("+name+")<=UNIX_TIMESTAMP(now())-"+val; };
   var tmpf=function(name,val){ var t=this.tNow; t=t!==null?t:"UNIX_TIMESTAMP(now())";   return "UNIX_TIMESTAMP("+name+")<="+t+"-"+val;  };
@@ -135,7 +140,7 @@ Plugin.general=function(){
   Prop.lastActivity.selF=selTimeF;
   Prop.IP.selF=selEnumF;
 
-  //var tmpf=function(name){ return "UNIX_TIMESTAMP(now())-UNIX_TIMESTAMP(u."+name+")";};
+  //var tmpf=name=>"UNIX_TIMESTAMP(now())-UNIX_TIMESTAMP(u."+name+")";
   var tmpf=function(name){ var t=this.tNow; t=t!==null?t:"UNIX_TIMESTAMP(now())";   return t+"-UNIX_TIMESTAMP(u."+name+")";  };
   Prop.created.histCondF=tmpf;
   Prop.lastActivity.histCondF=tmpf;
@@ -221,7 +226,7 @@ Plugin.appGoogle=function(){
 
 
 
-featCalcValExtend=function(Prop){
+var featCalcValExtend=function(Prop){
   for(var name in Prop){
     var prop=Prop[name];
     if(!('feat' in prop)) continue;
@@ -258,7 +263,7 @@ featCalcValExtend=function(Prop){
  * SiteExtend
  ***************************************************************************/
 
-siteCalcValExtend=function(site,siteName){ // Adding stuff that can be calculated from the other properties
+var siteCalcValExtend=function(site,siteName){ // Adding stuff that can be calculated from the other properties
   var Prop=site.Prop;
   site.KeyProp=Object.keys(Prop);   site.nProp=site.KeyProp.length;   site.KeyPropFlip=array_flip(site.KeyProp);
   site.KeySel=filterPropKeyByB(Prop,bFlip.DBSel);
@@ -289,9 +294,9 @@ siteCalcValExtend=function(site,siteName){ // Adding stuff that can be calculate
 
 
 
-StrPlugInAll=Object.keys(Plugin);
+var StrPlugInAll=Object.keys(Plugin);
 
-objStrPlugIn={
+var objStrPlugIn={
   oi:['general','appOI'],
   fb:['general','appFB'],
   google:['general','appGoogle'],
@@ -299,9 +304,9 @@ objStrPlugIn={
 }
 
 
-IntSizeIcon=[16, 114, 192, 200, 512, 1024];
-IntSizeIconFlip=array_flip(IntSizeIcon);
-SiteExtend=function(){
+var IntSizeIcon=[16, 114, 192, 200, 512, 1024];
+app.IntSizeIconFlip=array_flip(IntSizeIcon);
+app.SiteExtend=function(){
   for(var i=0;i<SiteName.length;i++){
     var siteName=SiteName[i], StrPlugIn=[];
     var tmp={siteName, Prop:{}};
@@ -361,10 +366,10 @@ for(var i=0;i<SiteName.length;i++){
   if(!rootDomain.wwwLoginBack) rootDomain.wwwLoginBack=site.wwwSite+"/"+leafLoginBack;
 }
 
-nDBConnectionLimit=10; nDBQueueLimit=100;
-nDBRetry=14;
+var nDBConnectionLimit=10, nDBQueueLimit=100, nDBRetry=14;
 
-DBExtend=function(){
+
+app.DBExtend=function(DB){
   var StrDB=Object.keys(UriDB);
   for(var i=0;i<StrDB.length;i++){
     var name=StrDB[i], uriDB=UriDB[name];

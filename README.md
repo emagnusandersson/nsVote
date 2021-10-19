@@ -6,6 +6,6 @@ Site software for voting using universal IDs from Identity providers (IdPs) (sit
 
 More info at https://emagnusandersson.com/nsVote
 
-Demo at http://nsvote.herokuapp.com/demoFB
+Demo at https://nsvote.herokuapp.com/demoFB
 
 

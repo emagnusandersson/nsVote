@@ -2,6 +2,8 @@
 "use strict"
 
 
+//function\(([\w,]+)\)\s*\{\s*return *
+
 /******************************************************************************
  * reqIndex
  ******************************************************************************/
@@ -84,7 +86,7 @@ xmlns:fb="http://www.facebook.com/2008/fbml">`);
 
 
   var uCommon=''; if(wwwCommon) uCommon=req.strSchemeLong+wwwCommon;
-  Str.push(`<script>var app=window;</script>`);
+  Str.push(`<script>window.app=window;</script>`);
   //Str.push(`<base href="`+uCommon+`">`);
 
   Str.push(`<style>
@@ -108,17 +110,17 @@ h1.mainH1 { box-sizing:border-box; margin:0em auto; width:100%; max-width:var(--
 
     // Include site specific JS-files
   var uSite=req.strSchemeLong+wwwSite;
-  var keyCache=siteName+'/'+leafSiteSpecific, vTmp=boDbgT?0:CacheUri[keyCache].eTag;  Str.push('<script src="'+uSite+'/'+leafSiteSpecific+'?v='+vTmp+'" async></script>');
+  var keyCache=siteName+'/'+leafSiteSpecific, vTmp=boDbgT?0:CacheUri[keyCache].eTag;  Str.push('<script type="module" src="'+uSite+'/'+leafSiteSpecific+'?v='+vTmp+'" async></script>');
 
     // Include JS-files
   var StrTmp=['filter.js', 'lib.js', 'libClient.js', 'client.js', 'lang/en.js'];
   for(var i=0;i<StrTmp.length;i++){
-    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push('<script src="'+uCommon+pathTmp+'?v='+vTmp+'" async></script>');
+    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push('<script type="module" src="'+uCommon+pathTmp+'?v='+vTmp+'" async></script>');
   }
 
     // Include plugins
   Str.push(`<script>
-var app=window;
+window.app=window;
 var CreatorPlugin={};
 </script>`);
 
@@ -131,11 +133,12 @@ var CreatorPlugin={};
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
   })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-  ga('create', '`+tmpID+`', 'auto');
+  ga('create', '`+tmpID+`', { 'storage': 'none' });
   ga('send', 'pageview');
 </script>`;
   }
   Str.push(strTracker);
+  //ga('create', '`+tmpID+`', 'auto');
 
   Str.push("</head>");
   Str.push(`<body>
@@ -146,11 +149,12 @@ var CreatorPlugin={};
 <noscript><div style="text-align:center">You don't have javascript enabled, so this app won't work.</div></noscript>
 </div>`);
 
-  Str.push(`\n<script type="text/javascript" language="JavaScript" charset="UTF-8">
-boTLS=`+JSON.stringify(req.boTLS)+`;
-siteName=`+JSON.stringify(siteName)+`;
-</script>
+//   Str.push(`\n<script >
+// boTLS=`+JSON.stringify(req.boTLS)+`;
+// siteName=`+JSON.stringify(siteName)+`;
+// </script>`);
 
+Str.push(`
 <form id=OpenID style="display:none">
 <label name=OpenID>OpenID</label><input type=text name=OpenID>
 <button type=submit name=submit>Go</button> 
@@ -163,6 +167,23 @@ siteName=`+JSON.stringify(siteName)+`;
   res.end(str);    
 }
 
+
+
+
+/******************************************************************************
+ * reqLogin
+ ******************************************************************************/
+app.reqLogin=async function(){
+  var {req, res}=this, {sessionID, objQS, rootDomain, strSchemeLong}=req;
+  var state=randomHash(); //CSRF protection
+  var {IP,fun,caller="index",siteName}=objQS,    objT={state, IP, fun, caller, siteName};
+  var [err]=await setRedis(sessionID+'_Login', objT, 300); if(err) res.out500(err);
+  var {wwwLoginBack,fb}=rootDomain;
+  var uLoginBack=strSchemeLong+wwwLoginBack;
+  var uTmp=UrlOAuth.fb+"?client_id="+fb.id+"&redirect_uri="+encodeURIComponent(uLoginBack)+"&state="+state;
+    // +"&scope=user_hometown" //+'&display=popup'
+  res.writeHead(302, {'Location': uTmp}); res.end();
+}
 
 /******************************************************************************
  * ReqLoginBack
@@ -440,8 +461,10 @@ app.reqDataDelete=async function(){  //
 
 app.reqDataDeleteStatus=async function(){
   var {req, res}=this, {site, objQS, uSite}=req;
-  var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=querystring.parse(qs);
-  var confirmation_code=objQS.confirmation_code||'';
+  //var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=querystring.parse(qs);
+  //var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=parseQS2(qs);
+  //var confirmation_code=objQS.confirmation_code||'';
+  var {confirmation_code=''}=objQS;
   var [err,mess]=await cmdRedis('GET', [confirmation_code+'_DeleteRequest']); 
   if(err) {var mess=err.message;}
   else if(mess==null) {
@@ -986,28 +1009,6 @@ var writeMessTextOfMultQuery=function(Sql, err, results){
 app.ReqSql=function(req, res){
   extend(this, {req, res});
   this.StrType=['table', 'fun', 'dropTable', 'dropFun', 'truncate', 'dummy', 'dummies']; 
-}
-app.ReqSql.prototype.createZip=function(objSetupSql){
-  var {res, StrType}=this;
-
-  var zipfile = new NodeZip();
-  for(var i=0;i<StrType.length;i++) {
-    var strType=StrType[i], SqlA;
-    var Match=RegExp("^(drop)?(.*)$").exec(strType), boDropOnly=Match[1]=='drop';
-    var SqlA=objSetupSql[Match[2].toLowerCase()](SiteName, boDropOnly);
-    var strDelim=';;', sql='-- DELIMITER '+strDelim+'\n'      +SqlA.join(strDelim+'\n')+strDelim      +'\n-- DELIMITER ;\n';
-    zipfile.file(strType+".sql", sql, {date:new Date(), compression:'DEFLATE'});
-  }
-
-  //var objArg={base64:false}; if(boCompress) objArg.compression='DEFLATE';
-  var objArg={type:'string'}; //if(boCompress) objArg.compression='DEFLATE';
-  var outdata = zipfile.generate(objArg);
-
-
-  var outFileName=strAppName+'Setup.zip';
-  var objHead={"Content-Length":outdata.length, 'Content-Disposition':'attachment; filename='+outFileName};  //"Content-Type": MimeType.zip, 
-  res.writeHead(200,objHead);
-  res.end(outdata,'binary');
 }
 ReqSql.prototype.toBrowser=function(objSetupSql){
   var {req, res}=this;
