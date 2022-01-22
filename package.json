@@ -25,7 +25,7 @@
     "serialize-javascript": "6.0.0",
     "streamify-string": "1.0.1",
     "through": "2.3.8",
-    "node-fetch": "^3.0.0"
+    "node-fetch": "^3.1.1"
   },
   "devDependencies": {},
   "private": true,
