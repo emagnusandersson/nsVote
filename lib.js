@@ -15,7 +15,6 @@ Promise.prototype.toNBP=function(){   return this.then(a=>{return [null,a];}).ca
 app.ucfirst=function(string){  return string.charAt(0).toUpperCase() + string.slice(1);  }
 app.lcfirst=function(string){  return string.charAt(0).toLowerCase() + string.slice(1);  }
 app.isAlpha=function(star){  var regEx = /^[a-zA-Z0-9]+$/;  return str.match(regEx); } 
-//String.prototype.trim = function(){ return this.replace(/^\s+|\s+$/g,"");}
 if(!String.format){
   String.format = function(format){
     var args = Array.prototype.slice.call(arguments, 1);
@@ -25,14 +24,6 @@ if(!String.format){
   };
 }
 
-app.ltrim=function(str,charlist){
-  if(charlist === undefined) charlist = "\\s";
-  return str.replace(new RegExp("^[" + charlist + "]+"), "");
-};
-app.rtrim=function(str,charlist){
-  if (charlist === undefined) charlist = "\\s";
-  return str.replace(new RegExp("[" + charlist + "]+$"), "");
-};
 
 //pad2=function(n){ return ('0'+n).slice(-2);}
 app.pad2=function(n){return (n<10?'0':'')+n;}

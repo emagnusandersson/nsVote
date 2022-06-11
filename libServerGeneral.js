@@ -44,6 +44,13 @@ MyMySql.prototype.rollbackNRelease=async function(){  await new Promise(resolve=
 MyMySql.prototype.commitNRelease=async function(){
   var err=await new Promise(resolve=>{this.connection.commit(eT=>resolve(eT));  });  this.connection.release();  return [err];
 }
+// MyMySql.prototype.isConnectionFree=function(){   return this.pool._freeConnections.indexOf(this.connection)!=-1;  }
+// MyMySql.prototype.fin=function(){
+//   if(this.connection) { 
+//     if(this.isConnectionFree()) this.connection.release();
+//     this.connection=null;
+//   };
+// }
 MyMySql.prototype.fin=function(){   if(this.connection) { this.connection.destroy();this.connection=null;};  }
 
 
@@ -134,7 +141,7 @@ app.MimeType={
 };
 
 
-app.md5=function(str){return crypto.createHash('md5').update(str).digest('hex');}
+app.md5=function(str){return myCrypto.createHash('md5').update(str).digest('hex');}
 
 
   // Redis
@@ -145,7 +152,7 @@ app.cmdRedis=async function(strCommand, arr){
   });
 }
 app.getRedis=async function(strVar, boObj=false){
-  var [err,res]=await cmdRedis('GET', [strVar]);  if(boObj) res=JSON.parse(res);  return [err,res];
+  var [err,data]=await cmdRedis('GET', [strVar]);  if(boObj) data=JSON.parse(data);  return [err,data];
 }
 app.setRedis=async function(strVar, val, tExpire=-1){
   if(typeof val!='string') var strA=JSON.stringify(val); else var strA=val;
@@ -215,7 +222,7 @@ return c`;
 
 app.CacheUriT=function(){
   this.set=async function(key, buf, type, boZip, boUglify){
-    //var eTag=crypto.createHash('md5').update(buf).digest('hex');
+    //var eTag=myCrypto.createHash('md5').update(buf).digest('hex');
     var eTag=md5(buf);
     //if(boUglify) { // UglifyJS does not handle ecma6 (when I tested it 2019-05-05).
       //var objU=UglifyJS.minify(buf.toString());

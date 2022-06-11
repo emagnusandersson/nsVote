@@ -1,7 +1,7 @@
 
 
 "use strict"
-window.onload=function(){
+app.funLoad=function(){
 
 
 var addStuffMy=function(){  
@@ -201,7 +201,7 @@ history.fastBack=function(viewGoal, boRefreshHash){
 
 var divMessageTextCreate=function(){
   var spanInner=createElement('span');
-  var imgBusyLoc=imgBusy.cloneNode().css({zoom:'65%','margin-left':'0.4em'}).hide();
+  var imgBusyLoc=imgBusy.cloneNode().css({transform:'scale(0.65)','margin-left':'0.4em'}).hide();
   var el=createElement('div').myAppend(spanInner, imgBusyLoc);
   el.resetMess=function(time){
     clearTimeout(messTimer);
@@ -952,19 +952,16 @@ app.boFF = uaLC.indexOf("firefox") > -1;
 
 app.boChrome= /chrome/.test(uaLC);
 app.boIOS= /iphone|ipad|ipod/.test(uaLC);
-app.boEpiphany=/epiphany/.test(uaLC);    if(boEpiphany && !boAndroid) boTouch=false;  // Ugly workaround
-app.boEdge= /\bedg\b/.test(uaLC);
+app.boEpiphany=/epiphany/.test(uaLC);    if(boEpiphany && !boAndroid) boTouch=false;  // Ugly workaround (epiphany=GNOME Web)
 
-app.boOpera=RegExp('OPR\\/').test(ua);
-
-if(boOpera) boChrome=false; //alert(ua);
+app.boOpera=RegExp('OPR\\/').test(ua);  if(boOpera) boChrome=false; //alert(ua);
 
 app.boSmallAndroid=0;
 
 if(boTouch){
   if(boIOS) {  
-    var tmp={height:"100%", "overflow-y":"scroll", "-webkit-overflow-scrolling":"touch"};
-    elBody.css(tmp);  elHtml.css(tmp);
+    // var tmp={height:"100%", "overflow-y":"scroll", "-webkit-overflow-scrolling":"touch"};
+    // elBody.css(tmp);  elHtml.css(tmp);
   }  
 }  
 
@@ -1228,11 +1225,10 @@ voterListTHead.myCreate();
 voterInfoDiv.createContainers();
 
 
+var MainDiv=[summaryDiv, loginPop, adminDiv, filterDiv, columnSelectorDiv, columnSorterDiv, voterInfoDiv, voterListHead, voterListDiv]; //, divEntryBar, divLoginInfo, H1, 
 
-
-
-var MainDiv=[summaryDiv, voterListHead, voterListDiv, filterDiv, adminDiv, voterInfoDiv, columnSelectorDiv, columnSorterDiv, loginPop]; //, divEntryBar, divLoginInfo, H1, 
-
+var StrMainDiv=MainDiv.map(obj=>obj.toString());
+var StrMainDivFlip=array_flip(StrMainDiv);
 
 var tmpCss={'border-top':'1px solid white', 'margin-left':'auto', 'margin-right':'auto','text-align':'left',background:'#fff'};   
 MainDiv.forEach(ele=>ele.css(tmpCss));
@@ -1299,8 +1295,8 @@ columnSorterDiv.setVis=function(){
 var vec=[['specSetup',{}],['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset:0,rowCount:maxVoterDisp},voterListDiv.getListRet],['getHist',null,getHistRet]];   majax(vec);
 setMess('... fetching data... ',0,true);
 
-
 }
-
+//window.onload=funLoad;
+funLoad()
 
 
