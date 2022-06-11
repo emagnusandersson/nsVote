@@ -13,8 +13,7 @@
   "dependencies": {
     "concat-stream": "2.0.0",
     "formidable": "2.0.1",
-    "gm": "1.23.1",
-    "ip": "1.1.5",
+    "ip": "1.1.8",
     "mime": "x",
     "minimist": "1.2.6",
     "mysql": "2.18.1",
@@ -24,7 +23,7 @@
     "serialize-javascript": "6.0.0",
     "streamify-string": "1.0.1",
     "through": "2.3.8",
-    "node-fetch": "^3.2.3"
+    "node-fetch": "^3.2.10"
   },
   "devDependencies": {},
   "private": true,
@@ -33,7 +32,7 @@
     "url": "https://github.com/"
   },
   "engines": {
-    "node": ">=12.x",
+    "node": ">=14.8",
     "npm": ""
   }
 }

@@ -1,7 +1,7 @@
 
 
 "use strict"
-window.onload=function(){
+app.funLoad=function(){
 
 
 var addStuffMy=function(){  
@@ -952,12 +952,9 @@ app.boFF = uaLC.indexOf("firefox") > -1;
 
 app.boChrome= /chrome/.test(uaLC);
 app.boIOS= /iphone|ipad|ipod/.test(uaLC);
-app.boEpiphany=/epiphany/.test(uaLC);    if(boEpiphany && !boAndroid) boTouch=false;  // Ugly workaround
-app.boEdge= /\bedg\b/.test(uaLC);
+app.boEpiphany=/epiphany/.test(uaLC);    if(boEpiphany && !boAndroid) boTouch=false;  // Ugly workaround (epiphany=GNOME Web)
 
-app.boOpera=RegExp('OPR\\/').test(ua);
-
-if(boOpera) boChrome=false; //alert(ua);
+app.boOpera=RegExp('OPR\\/').test(ua);  if(boOpera) boChrome=false; //alert(ua);
 
 app.boSmallAndroid=0;
 
@@ -1299,8 +1296,8 @@ columnSorterDiv.setVis=function(){
 var vec=[['specSetup',{}],['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset:0,rowCount:maxVoterDisp},voterListDiv.getListRet],['getHist',null,getHistRet]];   majax(vec);
 setMess('... fetching data... ',0,true);
 
-
 }
-
+//window.onload=funLoad;
+funLoad()
 
 

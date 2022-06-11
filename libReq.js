@@ -39,10 +39,6 @@ xmlns:fb="http://www.facebook.com/2008/fbml">`);
   //<meta name="apple-mobile-web-app-capable" content="yes" /> 
 
   var ua=req.headers['user-agent']||''; ua=ua.toLowerCase();
-  var boMSIE=RegExp('msie').test(ua);
-  var boAndroid=RegExp('android').test(ua);
-  var boFireFox=RegExp('firefox').test(ua);
-  //var boIOS= RegExp('iPhone|iPad|iPod','i').test(ua);
   var boIOS= RegExp('iphone','i').test(ua);
 
   
@@ -54,8 +50,6 @@ xmlns:fb="http://www.facebook.com/2008/fbml">`);
 
 
 
-  var strTmp='';  //if(boAndroid && boFireFox) {  strTmp=", width=device-width'";}    
-  var strTmpB=''; //if(boAndroid || boIOS) strTmpB=", user-scalable=no";
 
   Str.push("<meta name='viewport' id='viewportMy' content='initial-scale=1'/>");
   Str.push('<meta name="theme-color" content="#fff"/>');
@@ -85,6 +79,23 @@ xmlns:fb="http://www.facebook.com/2008/fbml">`);
   if(!boDbg) Str.push(tmp);
 
 
+  var strTracker, tmpID=site.googleAnalyticsTrackingID||null;
+  tmpID=null;  // Disabling ga
+  if(boDbg||!tmpID){strTracker=`<script> ga=function(){};</script>`;}else{ 
+  strTracker=`
+<script type="text/javascript">
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', '`+tmpID+`', { 'storage': 'none' });
+  ga('send', 'pageview');
+</script>`;
+  }
+  Str.push(strTracker);
+  //ga('create', '`+tmpID+`', 'auto');
+
+
   var uCommon=''; if(wwwCommon) uCommon=req.strSchemeLong+wwwCommon;
   Str.push(`<script>window.app=window;</script>`);
   //Str.push(`<base href="`+uCommon+`">`);
@@ -110,12 +121,12 @@ h1.mainH1 { box-sizing:border-box; margin:0em auto; width:100%; max-width:var(--
 
     // Include site specific JS-files
   var uSite=req.strSchemeLong+wwwSite;
-  var keyCache=siteName+'/'+leafSiteSpecific, vTmp=boDbgT?0:CacheUri[keyCache].eTag;  Str.push('<script type="module" src="'+uSite+'/'+leafSiteSpecific+'?v='+vTmp+'" async></script>');
+  var keyCache=siteName+'/'+leafSiteSpecific, vTmp=boDbgT?0:CacheUri[keyCache].eTag;  Str.push('<script type="module" src="'+uSite+'/'+leafSiteSpecific+'?v='+vTmp+'"></script>');
 
     // Include JS-files
-  var StrTmp=['filter.js', 'lib.js', 'libClient.js', 'client.js', 'lang/en.js'];
+  var StrTmp=['filter.js', 'lib.js', 'libClient.js', 'lang/en.js'];
   for(var i=0;i<StrTmp.length;i++){
-    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push('<script type="module" src="'+uCommon+pathTmp+'?v='+vTmp+'" async></script>');
+    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push('<script type="module" src="'+uCommon+pathTmp+'?v='+vTmp+'"></script>');
   }
 
     // Include plugins
@@ -124,21 +135,13 @@ window.app=window;
 var CreatorPlugin={};
 </script>`);
 
-
-  var strTracker, tmpID=site.googleAnalyticsTrackingID||null;
-  if(boDbg||!tmpID){strTracker=`<script> ga=function(){};</script>`;}else{ 
-  strTracker=`
-<script type="text/javascript">
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-  ga('create', '`+tmpID+`', { 'storage': 'none' });
-  ga('send', 'pageview');
-</script>`;
+    // Include JS-files
+  var StrTmp=['client.js'];
+  for(var i=0;i<StrTmp.length;i++){
+    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push('<script type="module" src="'+uCommon+pathTmp+'?v='+vTmp+'"></script>');
   }
-  Str.push(strTracker);
-  //ga('create', '`+tmpID+`', 'auto');
+
+
 
   Str.push("</head>");
   Str.push(`<body>
@@ -146,15 +149,8 @@ var CreatorPlugin={};
 <div id=summaryDiv class="mainDiv" style="align-items:flex-start">
 <div id=divEntryBar class="mainDivR" style="min-height:2em" visibility:hidden;></div>
 <h1 class="mainH1">`+site.strH1+`</h1>
-<noscript><div style="text-align:center">You don't have javascript enabled, so this app won't work.</div></noscript>
-</div>`);
-
-//   Str.push(`\n<script >
-// boTLS=`+JSON.stringify(req.boTLS)+`;
-// siteName=`+JSON.stringify(siteName)+`;
-// </script>`);
-
-Str.push(`
+<noscript><div style="text-align:center">Javascript is disabled, so this app won't work.</div></noscript>
+</div>
 <form id=OpenID style="display:none">
 <label name=OpenID>OpenID</label><input type=text name=OpenID>
 <button type=submit name=submit>Go</button> 
@@ -246,7 +242,7 @@ ReqLoginBack.prototype.go=async function(){
     var tmp="The state does not match. You may be a victim of CSRF.";    res.out500(tmp); return
   }
 
-  var [err, res]=await this.getGraph();  if(err){ res.out500(err); return; }
+  var [err, result]=await this.getGraph();  if(err){ res.out500(err); return; }
 
     // interpretGraph
   //this.interpretGraph(function(err,res){ });
@@ -281,13 +277,13 @@ ReqLoginBack.prototype.go=async function(){
 
 
   if(['adminFun'].indexOf(strFun)!=-1){
-    var [err, res]=await this[strFun]();  if(err){ res.out500(err); return; }
+    var [err, result]=await this[strFun]();  if(err){ res.out500(err); return; }
   }
   
-  var [err, res]=await runIdIP.call(this, this.IP, this.idIP);
+  var [err, result]=await runIdIP.call(this, this.IP, this.idIP);
   if(err){ res.out500(err); return; }
   
-  extend(this.sessionCache.userInfoFrDB,res); 
+  extend(this.sessionCache.userInfoFrDB,result); 
   
   //setSessionMain.call(this);
   var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err){res.out500(err); return;}
