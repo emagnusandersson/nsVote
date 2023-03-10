@@ -19,7 +19,8 @@ import myCrypto from 'crypto';
 //import NodeRSA from 'node-rsa';
 //import childProcess from 'child_process';
 import zlib from 'zlib';
-import redis from "redis";
+//import redis from "redis";
+import Redis from "ioredis";
 //import UglifyJS from "uglify-js";
 import ip from 'ip';
 //import Streamify from 'streamify-string';
@@ -28,7 +29,7 @@ import mime from "mime";
 import minimist from 'minimist';
 var argv=minimist(process.argv.slice(2));
 import './lib.js';
-extend(app, {http, url, path, fsPromises, mysql, concat, fetch, formidable, myCrypto, zlib, redis, ip, serialize, mime});
+extend(app, {http, url, path, fsPromises, mysql, concat, fetch, formidable, myCrypto, zlib, ip, serialize, mime});
 import './libMath.js';
 import './libServerGeneral.js';
 import './libServer.js';
@@ -59,10 +60,13 @@ var StrUnknown=AMinusB(Object.keys(argv),['_', 'h', 'help', 'p', 'port', 'sql'])
 var StrUnknown=[].concat(StrUnknown, argv._);
 if(StrUnknown.length){ console.log('Unknown arguments: '+StrUnknown.join(', ')); helpTextExit(); }
 
-var urlRedis=process.env.REDIS_URL;
-if(  urlRedis ) {
-  app.redisClient=redis.createClient(urlRedis, {no_ready_check: true}); //
-}else { app.redisClient=redis.createClient();}
+// var urlRedis=process.env.REDIS_URL;
+// if(  urlRedis ) {
+//   app.redisClient=redis.createClient(urlRedis, {no_ready_check: true}); //
+// }else { app.redisClient=redis.createClient();}
+
+var REDIS_URL="redis://localhost:6379"
+app.redis = new Redis(REDIS_URL);
 
 app.Plugin={};
 
@@ -169,6 +173,12 @@ app.strCookiePropNormal=";"+StrCookiePropProt.concat("SameSite=None").join(';');
 app.strCookiePropLax=";"+StrCookiePropProt.concat("SameSite=Lax").join(';');
 app.strCookiePropStrict=";"+StrCookiePropProt.concat("SameSite=Strict").join(';'); 
 
+var luaDDosCounterFun=`local c=redis.call('INCR',KEYS[1]); redis.call('EXPIRE',KEYS[1], ARGV[1]); return c`
+redis.defineCommand("myDDosCounterFun", { numberOfKeys: 1, lua: luaDDosCounterFun });
+
+var luaDogFeederFun=`local c=redis.call('GET',KEYS[1]); redis.call('EXPIRE',KEYS[1], ARGV[1]); return c`;
+//var luaDogFeederFun=`local c=redis.call('GET',KEYS[1]); if(c) then redis.call('EXPIRE',KEYS[1], ARGV[1]); end; return c`;
+redis.defineCommand("myDogFeederFun", { numberOfKeys: 1, lua: luaDogFeederFun });
 
 
 //handler=function(req, res){
@@ -214,7 +224,7 @@ const handler=async function(req, res){
   var boSessionCookieInInput='sessionIDNormal' in cookies, sessionID=null, redisVarSessionCache;
   if(boSessionCookieInInput) {
     sessionID=cookies.sessionIDNormal;  redisVarSessionCache=sessionID+'_Cache';
-    var [err, tmp]=await cmdRedis('EXISTS', redisVarSessionCache); if(err) {console.error(err); process.exit(1);} 
+    var [err, tmp]=await existsRedis(redisVarSessionCache); if(err) {console.error(err); process.exit(1);} 
     req.boCookieNormalOK=tmp;
   } 
   
@@ -229,8 +239,8 @@ const handler=async function(req, res){
   }
   
     // Increase DDOS counter 
-  var luaCountFunc=`local c=redis.call('INCR',KEYS[1]); redis.call('EXPIRE',KEYS[1], ARGV[1]); return c`;
-  var [err, intCount]=await cmdRedis('EVAL',[luaCountFunc, 1, redisVarDDOSCounter, tDDOSBan]); if(err) {console.error(err); process.exit(1);}
+  //var [err, intCount]=await cmdRedis('EVAL',[luaDDosCounterFun, 1, redisVarDDOSCounter, tDDOSBan]); if(err) {console.error(err); process.exit(1);}
+  var [err, intCount]=await redis.myDDosCounterFun(redisVarDDOSCounter, tDDOSBan).toNBP(); if(err) {console.error(err); process.exit(1);}
   
   
   res.setHeader("Set-Cookie", ["sessionIDNormal="+sessionID+strCookiePropNormal, "sessionIDLax="+sessionID+strCookiePropLax, "sessionIDStrict="+sessionID+strCookiePropStrict]);
@@ -245,8 +255,8 @@ const handler=async function(req, res){
   
     // Refresh / create  redisVarSessionCache
   if(req.boCookieNormalOK){
-    var luaCountFunc=`local c=redis.call('GET',KEYS[1]); redis.call('EXPIRE',KEYS[1], ARGV[1]); return c`;
-    var [err, value]=await cmdRedis('EVAL',[luaCountFunc, 1, redisVarSessionCache, maxUnactivity]); if(err) {console.error(err); process.exit(1);}
+    //var [err, value]=await cmdRedis('EVAL',[luaDogFeederFun, 1, redisVarSessionCache, maxUnactivity]); if(err) {console.error(err); process.exit(1);}
+    var [err, value]=await redis.myDogFeederFun(redisVarSessionCache, maxUnactivity).toNBP(); if(err) {console.error(err); process.exit(1);}
     req.sessionCache=JSON.parse(value);
   } else { 
     var [err]=await setRedis(redisVarSessionCache,{}, maxUnactivity);   if(err) {console.error(err); process.exit(1);}
