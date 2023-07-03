@@ -36,7 +36,7 @@ var addStuffGeneral=function(){
     var tmpSetLastActivity=makeTimeF('lastActivity',-1);
     var tmpIP=function(iMTab,c){  return enumIP[Number( MTab[iMTab].IP )]; }
 
-    var calcImageUrl=function(iMTab){var rT=MTab[iMTab],tmp=''; if(rT.IP=='1') tmp='https://graph.facebook.com/'+rT.idIP+'/picture';else tmp=uDummy; return tmp;}
+    var calcImageUrl=function(iMTab){var rT=MTab[iMTab],tmp=''; if(rT.IP=='1') tmp=`https://graph.facebook.com/${rT.idIP}/picture`;else tmp=uDummy; return tmp;}
     var tmpSetImage=function(iMTab,c){ c.children[0].prop({src:calcImageUrl(iMTab)});  }  
 
     var tmpCrImage=function(c){ c.append(createElement('img').prop({alt:"voter"}));  }
@@ -128,18 +128,113 @@ var addStuffIP=function(){
 
 
 
-var createColJIndexNamesObj=function(arrName){
-  var o={};
-  for(var i=0;i<arrName.length;i++){ 
-    var tmp="j"+arrName[i][0].toUpperCase()+arrName[i].substr(1);       o[tmp]=i;
+
+//
+// Theme functions
+//
+
+  // themeOS ∈ ['dark','light']
+  // themeChoise ∈ ['dark','light','system']
+  // themeCalc ∈ ['dark','light']
+  window.analysColorSchemeSettings=function(){
+    var themeOS=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"
+    var themeChoise=localStorage.getItem("themeChoise")??"system";
+    var arrThemeChoise=['dark','light','system'];
+    var ind=arrThemeChoise.indexOf(themeChoise);  if(ind==-1) ind=2;
+    var themeChoise=arrThemeChoise[ind]
+    var themeCalc=themeChoise=="system"?themeOS:themeChoise
+    return {themeOS, themeChoise, themeCalc}
   }
-  return o;
-}
+  
+  var setThemeClass=function(theme){
+    if(theme=='dark') elHtml.setAttribute('data-theme', 'dark'); else elHtml.removeAttribute('data-theme');
+    var strT=theme; if(theme!='dark' && theme!='light') strT='light dark'
+    elHtml.css({'color-scheme':strT});
+  }
+  
+    // Initial setup of selectorOfTheme
+  // var selectorOfTheme=createSelectorOfTheme()
+  // elBody.myAppend(selectorOfTheme)
+  
+  // var {themeOS, themeChoise, themeCalc}=analysColorSchemeSettings();
+  // console.log(`OS: ${themeOS}, choise: ${themeChoise}, calc: ${themeCalc}`)
+  // setThemeClass(themeCalc)
+  // selectorOfTheme.value=themeChoise
+  
+    // Listen to prefered-color changes on the OS
+  window.colorSchemeQueryListener = window.matchMedia('(prefers-color-scheme: dark)');
+  colorSchemeQueryListener.addEventListener('change', function(e) {
+    var {themeOS, themeChoise, themeCalc}=analysColorSchemeSettings();
+    console.log(`OS: ${themeOS}, choise: ${themeChoise}, calc: ${themeCalc}`)
+    setThemeClass(themeCalc)
+  });
+  
+  
+  
+  window.divThemeSelectorCreate=function(){
+    var el=createElement('div')
+    var butSystem=createElement('button').myText('Same as OS').prop({value:'system'})
+    var butLight=createElement('button').myText('Light').prop({value:'light'})
+    var butDark=createElement('button').myText('Dark').prop({value:'dark'})
+    var But=[butSystem, butLight, butDark]
+    var StrBut=['system', 'light', 'dark']
+    var objBut={};  But.forEach((ele,i)=>objBut[StrBut[i]]=ele);
+    el.setButStyling=function(strTheme){
+      //var but=(typeof arg=='string')?objBut(arg):arg
+      var but=objBut[strTheme]
+      But.forEach(elem=>elem.removeClass('boxShadowOn').addClass('boxShadowOff'))
+      but.removeClass('boxShadowOff').addClass('boxShadowOn')
+    }
+    But.forEach(ele=>ele.on('click',function(e){
+      localStorage.setItem('themeChoise', this.value);
+      var {themeOS, themeChoise, themeCalc}=analysColorSchemeSettings();
+      console.log(`OS: ${themeOS}, choise: ${themeChoise}, calc: ${themeCalc}`)
+      setThemeClass(themeCalc)
+      el.setButStyling(themeChoise)
+    }))
+    el.myAppend(...But).css({display:'flex', gap:'.4em', 'justify-content':'space-evenly', 'flex-wrap':'wrap'})
+    return el
+  }
+  var themePopExtend=function(el){
+    el.strName='themePop'
+    el.id=el.strName
+    el.toString=function(){return el.strName;}
+    el.setVis=function(){
+      if(boDialog) el.showModal(); else el.show();
+      return true;
+    }
+    el.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      historyBack()
+    })
+  
+    var h1=createElement('h3').myText("Theme (Background colors): ").css({'margin':'0'});
+  
+    var divThemeSelector=divThemeSelectorCreate()
+    var {themeOS, themeChoise, themeCalc}=analysColorSchemeSettings();
+    console.log(`OS: ${themeOS}, choise: ${themeChoise}`)
+    setThemeClass(themeCalc)
+    divThemeSelector.setButStyling(themeChoise)
+  
+    var buttonBack=createElement('button').on('click', historyBack).myText(charBack).css({'margin-left':'.8em'});
+    var divBottom=createElement('div').myAppend(buttonBack).css({display:'flex', gap:'0.4em', 'justify-content':'space-between'})
+  
+    var El=[h1, divThemeSelector, divBottom];
+    var centerDiv=createElement('div').myAppend(...El);
+    if(boDialog){
+      el.myAppend(centerDiv);
+    } else{
+      var blanket=createElement('div').addClass("blanket");
+      centerDiv.addClass("Center-Flex")
+      centerDiv.css({height:'min(8em, 98%)', width:'min(21em,98%)'});
+      el.addClass("Center-Container-Flex").myAppend(centerDiv,blanket);
+    }
+    centerDiv.css({display:'flex', gap:'1em', 'flex-direction':'column', 'justify-content':'space-evenly'})
+  
+    return el;
+  }
+  
 
-
-var createChildInd=function(arrI){
-  var arrO=[]; for(var i=0;i<arrI.length;i++){  var itmp=arrI[i];  arrO[itmp]=i;  }  return arrO;
-}
 
 
 
@@ -221,6 +316,7 @@ var divMessageTextCreate=function(){
     if(time)     messTimer=setTimeout(resetMess, time*1000);
     imgBusyLoc.toggle(Boolean(boRot));
   };
+  el.on('click',el.resetMess)
   var messTimer;
   el.addClass('message');
   return el;
@@ -253,20 +349,21 @@ app.loginReturn=function(userInfoFrIPT,userInfoFrDBT,fun,strMess,CSRFCodeT){
   userInfoFrIP=userInfoFrIPT; userInfoFrDB=userInfoFrDBT;
   
   loginInfoToggleStuff();
-  //if(loginPop.parentNode) loginPop.closeFunc();
   if(loginReturn2) {loginReturn2(); loginReturn2=null;}
 
   //divLoginInfo.setStat(); 
 }
 
 var loginPopExtend=function(el){
-  el.toString=function(){return 'loginPop';}
+  el.strName='loginPop'
+  el.id=el.strName
+  el.toString=function(){return el.strName;}
   var popupWin=function(IP,openid) {
     //e.preventDefault();
     pendingMess.show(); cancelMess.hide();
     
     //var strFile='loginStart.php';
-    var arrQ=['IP='+IP, 'fileReturn='+encodeURIComponent(uLogin),'fun='+strType+'Fun', 'siteName='+siteName];
+    var arrQ=['IP='+IP, 'fileReturn='+encodeURIComponent(uLogin),`fun=${strType}Fun`, 'siteName='+siteName];
     if(IP==='openid') arrQ.push('openid_identifier='+encodeURIComponent(openid));
     var uPop=uLogin+'?'+arrQ.join('&');
     el.win=window.open(uPop);//, '_blank', 'width=580,height=400'
@@ -283,36 +380,39 @@ var loginPopExtend=function(el){
     doHistPush({view:loginPop});
     el.setVis();
   }
-  el.setVis=function(){ el.show(); return true; }
-  el.closeFunc=function(){   clearInterval(timerClosePoll); historyBack();    }
+  el.setVis=function(){ 
+    if(boDialog) el.showModal(); else el.show();
+    return true; 
+  }
+  //el.closeFunc=function(){   clearInterval(timerClosePoll); historyBack();    }
   el.setHead=function(headT){ spanHead.myHtml(headT); return el;}
+  el.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    historyBack()
+  })
 
   var timerClosePoll;
-  
-  //el=popUpExtend(el);  
-  //el.css({'max-width':'21em', padding: '1em 0.8em 1em 0.8em'});  
-  //el.blanket.css({'z-index':50});   el.css({'z-index':107});
 
   var strType;
   
-  var headHelp=imgHelp.cloneNode(1).css({'margin-left':'1em'}),  bubHead=createElement('div').myHtml(langHtml.loginPop.DeleteInfo);     popupHover(headHelp,bubHead);
-  var spanHead=createElement('span').css({'font-weight':'bold'});  
-  var head=createElement('p').css({'font-weight':'bold'}).myAppend(spanHead,headHelp);  
+  var headHelp=imgHelp.cloneNode(1).css({'margin-left':'1em'}),  bubHead=createElement('div').myHtml(langHtml.loginPop.DeleteInfo);     popupHover(headHelp,bubHead, 0);
+  var spanHead=createElement('span').css({'font-weight':'bold'});   //.prop('title','123');
+  var head=createElement('div').css({'font-weight':'bold'}).myAppend(spanHead,headHelp);  
   
-  var fbIm=createElement('img').on('click', function(){popupWin('fb','');}).prop({src:uFBFacebook, alt:"fb"}).css({position:'relative',top:'0.4em'});
+  var fbIm=createElement('img').on('click', function(){popupWin('fb','');}).prop({src:uFBFacebook, alt:"fb"}).css({'vertical-align':'bottom'});
   var strTex=site.boOpenVote?'fbCommentOpen':'fbComment';
   var fbHelp=imgHelp.cloneNode(1).css({'margin-left':'1em'}),  bub=createElement('div').myHtml(langHtml.loginPop.fbComment);     popupHover(fbHelp,bub);
-  var pFB=createElement('p').myAppend(fbIm,fbHelp);
+  var divFB=createElement('div').myAppend(fbIm,fbHelp);
   
   var strButtonSize='2em';
-  var googleIm=createElement('img').prop({src:uGoogle, alt:"google"}).on('click', function(){popupWin('google','');}).css({position:'relative',top:'0.4em',width:strButtonSize,heigth:strButtonSize,'margin-left':'1em'}); 
-  var pGoogle=createElement('p').myAppend(googleIm);
+  var googleIm=createElement('img').prop({src:uGoogle, alt:"google"}).on('click', function(){popupWin('google','');}).css({'vertical-align':'bottom',width:strButtonSize,heigth:strButtonSize,'margin-left':'1em'}); 
+  var divGoogle=createElement('div').myAppend(googleIm);
 
 
     // formOpenID
   var formOpenID=document.querySelector('#OpenID').detach();
   var inpOpenID=formOpenID.querySelector("input[name='OpenID']").prop({type:'text',size:19,width:'12em'});
-  inpOpenID.css({background: 'url('+uOpenId+') no-repeat scroll 0 50% #fff', 'padding-left':'1.1em'});
+  inpOpenID.css({background: `url(${uOpenId}) no-repeat scroll 0 50% var(--bg-color)`, 'padding-left':'1.1em'});
   inpOpenID.on('keypress', function(e){ if(e.which==13) popupWin('openid',inpOpenID.value); } );
   
   var buttGo=formOpenID.querySelector("button[name='submit']").on('click',function(){popupWin('openid',inpOpenID.value);});
@@ -324,25 +424,31 @@ var loginPopExtend=function(el){
   formOpenID.myAppend(createAccount);
 
   
-  var cancel=createElement('button').on('click', historyBack).myText(langHtml.Cancel);
+  var cancel=createElement('button').on('click', historyBack).myText(langHtml.Cancel).css({'place-self':'start'});
   
   var divs=[];
   if(site.typeApp=='oi') divs.push(formOpenID);
-  if(site.typeApp=='fb') divs.push(pFB);
-  if(site.typeApp=='google') divs.push(pGoogle);
+  if(site.typeApp=='fb') divs.push(divFB);
+  if(site.typeApp=='google') divs.push(divGoogle);
   divs.push(cancel);
  
-  divs.forEach(ele=>ele.css({'margin-top':'1.5em', 'margin-right':'1.5em'}));
   
   
   var pendingMess=createElement('span').hide().myAppend(langHtml.loginPop.pendingMess,' ',imgBusy.cloneNode());
   var cancelMess=createElement('span').hide().myAppend(langHtml.loginPop.cancelMess);
 
-
-  var blanket=createElement('div').addClass("blanket");
-  var centerDiv=createElement('div').myAppend(head, ...divs, pendingMess, cancelMess);
-  centerDiv.addClass("Center").css({padding: '1em 0.8em 1em 0.8em'}); //'width':'21em', height:'12em', 
-  el.addClass("Center-Container").myAppend(centerDiv,blanket); //
+  var El=[head, ...divs, pendingMess, cancelMess];
+  var centerDiv=createElement('div').myAppend(...El);
+  if(boDialog){
+    el.myAppend(centerDiv);
+  } else{
+    var blanket=createElement('div').addClass("blanket");
+    centerDiv.addClass("Center-Flex")
+    centerDiv.css({padding: '1.2em'}); //height:'min(13em, 98%)', width:'min(20em,98%)'
+    el.addClass("Center-Container-Flex").myAppend(centerDiv,blanket);
+  }
+  centerDiv.css({display:'flex', gap:'1em', 'flex-direction':'column', 'justify-content':'space-evenly'})
+  el.css({'text-align':'left'});
 
   return el;
 }
@@ -368,8 +474,7 @@ var divLoginInfoExtend=function(el){
     } 
   }
   var spanName=createElement('span'), spanKind=createElement('span').css({'margin-left':'.4em', 'margin-right':'0.4em'});
-  //var logoutButt=createElement('a').prop({href:''}).myText(langHtml.divLoginInfo.logoutButt).css({'float':'right'});
-  var logoutButt=createElement('button').myText(langHtml.divLoginInfo.logoutButt).css({'margin-left':'auto'}); //.css({'float':'right','font-size':'90%'});
+  var logoutButt=createElement('button').myText(langHtml.divLoginInfo.logoutButt).css({'margin-left':'auto'});
   logoutButt.on('click', function(){ 
     userInfoFrIP={}; 
     var vec=[['logout',{}, function(data){
@@ -392,24 +497,6 @@ var divLoginInfoExtend=function(el){
 //
 
 
-var voterListHeadExtend=function(el){
-  var buttonBack=createElement('button').on('click', historyBack).myAppend(langHtml.Back).css({'margin-right':'1em','margin-left':'0.6em'});
-  el.buttShowSelect=createElement('button').myAppend(langHtml.ShowMoreData).on('click', function(){ 
-    columnSelectorDiv.setUp(colsShowInd, jColOneMark);
-    columnSelectorDiv.setVis();
-    doHistPush({view:columnSelectorDiv});
-  });
-
-  //el.filterButton=filterButton.cloneNode().on('click', function(){  filterButtonClick();  });
-  el.filterInfoWrap=createElement('span');
-  var filterButton=createElement('button').myAppend(langHtml.Filter,': (',el.filterInfoWrap,')').css({'float':'right','clear':'both'}).on('click', function(){  filterButtonClick();  });
-  var topDivA=createElement('div').myAppend(buttonBack,filterButton).css({'margin-top':'1em',overflow:'hidden','text-align':'left'}); el.topDivA=topDivA;
-  var topDivB=createElement('div').myAppend(el.buttShowSelect).css({'margin-top':'1em','text-align':'left'});
-  
-  el.append(topDivA);
-  return el;
-}
-
 var voterListTHeadExtend=function(el){
   el.myCreate=function(){
     for(var i=0;i<voterListDiv.StrProp.length;i++){
@@ -424,7 +511,9 @@ var voterListTHeadExtend=function(el){
 
 
 var voterListDivExtend=function(el){
-  el.toString=function(){return 'voterListDiv';}
+  el.strName='voterListDiv'
+  el.id=el.strName
+  el.toString=function(){return el.strName;}
   el.setMTab=function(MOrg){ //, tabChoise
     if(typeof MOrg =='undefined') nMTab=0;
     else{
@@ -450,7 +539,13 @@ var voterListDivExtend=function(el){
     //var tmp=data.nCur;   if(typeof tmp!="undefined")  nCur=tmp;
     //var tmp=data.n;   if(typeof tmp!="undefined") { filterInfoSpan.setN(tmp); var nFiltTot=tmp[0];}
     //var tmp=data.n;   if(typeof tmp!="undefined") {  var nFiltTot=tmp[0];}
-    var tmp=data.NVoter;   if(typeof tmp!="undefined") {  nFiltTot=tmp[0]; nTot=tmp[1];  filterInfoSpan.setN(tmp); } 
+    //var tmp=data.NVoter;   if(typeof tmp!="undefined") {  nFiltTot=tmp[0]; nTot=tmp[1];  filterInfoSpan.setN(tmp); } 
+    var tmp=data.NVoter;   if(typeof tmp!="undefined") {  
+      nFiltTot=tmp[0]; nTot=tmp[1];
+      summaryDiv.filterInfo.setN(tmp);
+      voterListDiv.filterInfo.setN(tmp);
+      filterDiv.filterInfo.setN(tmp);
+    } 
     
     var tmp=data.tab;  if(typeof tmp =='undefined') {tmp=[]; } tab=tmp; nCur=tab.length;
     //var tmp=data.tabChoise;  if(typeof tmp =='undefined') {tmp=[]; } tabChoise=tmp;
@@ -459,10 +554,9 @@ var voterListDivExtend=function(el){
     el.setCell();
     el.setRowDisp();
     
-    
     if(nFiltTot>offset+MTab.length) butNext.prop({disabled:false}); else butNext.prop({disabled:1});
     if(offset>0) butPrev.prop({disabled:false}); else butPrev.prop({disabled:1});
-    spanInfo.myText('Row: '+(offset+1)+'-'+(nCur+offset)+', tot: '+nFiltTot);
+    spanInfo.myText(`Row: ${(offset+1)}-${(nCur+offset)}, tot: ${nFiltTot}`);
   }
   el.setRowDisp=function(){
     var arrT=[...tBody.querySelectorAll('tr')], arrShow=arrT.slice(0, nMTab), arrHide=arrT.slice(nMTab);
@@ -484,7 +578,7 @@ var voterListDivExtend=function(el){
   el.createTBody=function(){
     for(var i=0;i<maxVoterDisp;i++) {
       var row=createElement('tr');
-      if(!boTouch) row.on('mouseover',function(){this.css({background:'#faa'});}).on('mouseout',function(){this.css({background:''});});
+      if(!boTouch) row.on('mouseover',function(){this.css({background:'var(--bg-red)'});}).on('mouseout',function(){this.css({background:''});});
       for(var j=0;j<el.StrProp.length;j++){ 
         var strName=el.StrProp[j], tmpObj=(strName in el)?el[strName]:emptyObj;
         var td=createElement('td').css({'max-width':'200px','max-height':'40px',overflow:'hidden'}).attr('name',strName);
@@ -512,7 +606,7 @@ var voterListDivExtend=function(el){
     });
   }
   el.getRow=function(iMTab){
-    //var tmp=tBody.children('tr:lt('+nMTab+')');
+    //var tmp=tBody.children(`tr:lt(${nMTab})`);
     var tmp=[...tBody.querySelectorAll('tr')];
     tmp=tmp.filter(function(ele){return ele.iMTab == iMTab;});
     return tmp[0];
@@ -531,22 +625,44 @@ var voterListDivExtend=function(el){
   app.nMTab=0;
   var offset=0; //el.rowCount=maxVoterDisp;
   
-  var table=createElement('table').css({display:'inline-table',background:'#fff'});
+  var table=createElement('table'); //.css({display:'inline-table', 'margin-top': '3em'}); //, background:'var(--bg-color)'
   var tBody=createElement('tbody');  
  
-  table.append(tBody); 
-  table.show();
+
+  el.voterListTHead=voterListTHeadExtend(createElement('thead')).css({'text-align':'center',
+  position: 'sticky',
+  top: '0em',
+  opacity: '0.9',
+  background: 'var(--bg-colorEmp)'});  
+
+  table.myAppend(el.voterListTHead, tBody); 
+  //table.show();
 
   
   var butPrev=createElement('button').myAppend('Prev page').on('click', function(){ offset-=maxVoterDisp; offset=offset>=0?offset:0; el.load();});
   var butNext=createElement('button').myAppend('Next page').on('click', function(){ offset+=maxVoterDisp; el.load();});
   var spanInfo=createElement('span');
-  var spanPrevNext=createElement('span').myAppend(butPrev,butNext).css({display:'inline-block'});
-  var divInfo=createElement('div').myAppend(spanInfo,spanPrevNext);
-  el.append(table,divInfo);
+  var divTab=createElement('div').myAppend(table).css({'margin-bottom':'3em'});
 
-  el.table=table, el.tBody=tBody;
 
+  var buttonBack=createElement('button').myText(charBack).on('click', historyBack).css({'margin-left':'0.8em'});
+  var buttShowSelect=createElement('button').myAppend(langHtml.ShowMoreData).on('click', function(){ 
+    columnSelectorDiv.setUp(colsShowInd, jColOneMark);
+    columnSelectorDiv.setVis();
+    doHistPush({view:columnSelectorDiv});
+  });
+
+  
+  el.filterInfo=filterInfoSpanExtend(createElement('span'));
+  var filterButton=createElement('button').myAppend(langHtml.Filter,': (',el.filterInfo,')').css({'margin-left':'auto'}).on('click', function(){  filterButtonClick();  });
+
+  
+  var divBottom=createElement('div').myAppend(buttonBack, spanInfo, butPrev, butNext, filterButton).addClass('footDiv')
+  divBottom.css({'text-align':'left', left:'50%', transform:'translateX(-50%)', 'min-height':'3em'})
+
+  el.append(divTab, divBottom);
+  el.addClass('voterListDiv')
+  el.css({'text-align':'center', display:'inline-block'});
   return el;
 }
 
@@ -574,24 +690,26 @@ var arrValRemove=function(arr,val){  var indOf=arr.indexOf(val); if(indOf!=-1) m
       // histPHP (server-side): histPHP[buttonNumber]=['name',value], (converts to:) hist[0]=names,  hist[1]=values
 var FilterDiv=function(Prop, Label, StrOrderFilt, changeFunc, StrGroupFirst=[], StrGroup=[]){   //  Note!! StrOrderFilt should not be changed by any client side plugins (as it is also used on the server)
   var el=createElement('div');
-  el.toString=function(){return 'FilterDiv';}
+  el.strName='FilterDiv'
+  el.id=el.strName
+  el.toString=function(){return el.strName;}
 
   var objArg={Prop, Label, StrOrderFilt, changeFunc, StrGroupFirst, StrGroup, helpBub, objSetting:objFilterSetting};
-  el.divCont=filterDivICreator(objArg, changeFunc).addClass('contDiv').css({'max-width':menuMaxWidth+'px',margin:'0em auto','text-align':'left'});
+  el.divCont=filterDivICreator(objArg, changeFunc).addClass('contDiv').css({'max-width':menuMaxWidth+'px',margin:'0em auto 3em','text-align':'left'});
   
-  var buttonBack=createElement('button').myText(langHtml.Back).addClass('fixWidth').on('click', historyBack).css({'margin-left':'0.8em','margin-right':'1em'});
+  var buttonBack=createElement('button').myText(charBack).addClass('fixWidth').on('click', historyBack).css({'margin-left':'0.8em','margin-right':'1em'});
  
-  el.filterInfoWrap=createElement('span');
-  var filterInfoWrap2=createElement('span').myAppend(' (',el.filterInfoWrap,')').css({'float':'right',margin:'0.2em 0 0 0.2em'});  //,'clear':'both'
+  el.filterInfo=filterInfoSpanExtend(createElement('span'));
+  var filterInfoWrap2=createElement('span').myAppend(' (',el.filterInfo,')').css({'float':'right',margin:'0.2em 0 0 0.2em'});
   
-  var buttClear=createElement('button').myAppend(langHtml.ResetFilter).on('click', function(){el.divCont.Filt.filtAll(); loadTabStart();}).css({'float':'right'});  //,'clear':'both'
+  var buttClear=createElement('button').myAppend(langHtml.ResetFilter).on('click', function(){el.divCont.Filt.filtAll(); loadTabStart();}).css({'margin-left':'auto'});
   
-  var menuA=createElement('div').myAppend(buttonBack,filterInfoWrap2,buttClear).css({padding:'0','margin-top':'1em',overflow:'hidden'});
-  //el.prepend(menuA);
+  var divBottom=createElement('div').myAppend(buttonBack, buttClear, filterInfoWrap2); //.css({padding:'0','margin-top':'1em',overflow:'hidden'});
+  divBottom.addClass('footDiv').css({'min-height':'3em'})
 
-  el.addClass('unselectable');    el.prop({unselectable:"on"}); //class: needed by firefox, prop: needed by opera, firefox and ie
+  el.addClass('unselectable');
 
-  el.append(menuA, el.divCont);
+  el.append(el.divCont, divBottom);
   //el.divCont=el;
   return el;
 }
@@ -611,7 +729,9 @@ var menuMaxWidth=500;
 //
 
 var summaryDivExtend=function(el){
-  el.toString=function(){return 'summaryDiv';}
+  el.strName='summaryDiv'
+  el.id=el.strName
+  el.toString=function(){return el.strName;}
   
   var upLoad=function(ind){
     var vec=[['UUpdate',{choise:ind}], ['specSetup',{Role:'voter'}]];   majax(vec);
@@ -633,7 +753,7 @@ var summaryDivExtend=function(el){
         loginReturnVoter();
         if(userInfoFrIP){setSingle.call(el);upLoad(ind);}
       }; 
-      loginPop.setHead(langHtml.loginHeadMess).openFunc('voter');  return false; //table.find(':checkbox').prop({'checked':false});
+      loginPop.setHead(langHtml.loginHeadMess).openFunc('voter');  return false;
     }
   }
   el.setAllOn=function(){ checkBoxes.forEach(function(ele,i) { ele.prop({'checked':true}); }); }
@@ -682,14 +802,14 @@ var summaryDivExtend=function(el){
   
   var colStaple='#f70';
 
-  var arrImgSort=[createElement('img'), createElement('img'), createElement('img')]; arrImgSort.forEach(ele=>ele.prop({srcset:srcsetUnsorted, alt:"sort"}).css({margin:'0 0.3em', width:"8px"}));
+  var arrImgSort=[createElement('img'), createElement('img'), createElement('img')]; arrImgSort.forEach(ele=>ele.prop({srcset:srcsetUnsorted, alt:"sort"}).css({margin:'0 0.3em', width:"8px", filter:'invert(var(--invert))'}));
   
   var thName=createElement('th').myAppend(langHtml.Option,arrImgSort[0]).on('click', thClick).prop({iCol:0});
   var thNVote=createElement('th').myAppend(langHtml.Votes,arrImgSort[1]).on('click', thClick).prop({colSpan:2, iCol:1});
   var thUserVote=createElement('th').myAppend(langHtml.YourVote, arrImgSort[2]).on('click', thClick).prop({iCol:3}).css({'text-align':'center','padding-left':'1em'});
 
   var heads=[thName, thNVote, thUserVote]; heads.forEach(ele=>ele.css({cursor:'pointer'}));
-  var tHead=createElement('thead').myAppend(createElement('tr').myAppend(...heads));
+  var tHead=createElement('thead').myAppend(createElement('tr').myAppend(...heads)).css({position:'sticky', top:0, background:'var(--bg-color)'});
   var tBody=createElement('tbody');
   var table=createElement('table').myAppend(tHead,tBody).css({'margin-top':'1em'});
   
@@ -718,17 +838,28 @@ var summaryDivExtend=function(el){
   
   var checkBoxes =[...tBody.querySelectorAll('input[type="checkbox"]')]; checkBoxes.forEach(ele=>ele.css({height:'1.4em',width:'1.4em','margin':'.5em 1.5em'}).on('click', checkboxClick)); 
   
-  var tableButtonLoc=tableButton.cloneNode(true).css({'margin-right':'2px'}).on('click', function(){voterListButtonClick();});
-  if(site.boOpenVote==0) tableButtonLoc.hide();
-  el.filterInfoWrap=createElement('span');
-  var filterButton=createElement('button').myAppend(langHtml.Filter,': (',el.filterInfoWrap,')').css({}).on('click', function(){  filterButtonClick();  }); //     'float':'right','clear':'both'
+  var imgList=imgListProt.cloneNode()
+  var tableButton=createElement('button').myAppend(imgList).css({'margin-right':'2px'}).prop({'aria-label':"List of voters"}).on('click',function(){ 
+    voterListDiv.setVis();  doHistPush({view:voterListDiv}); 
+  });
 
-  var topDivA=createElement('div').myAppend(butAdmin, tableButtonLoc, filterButton).css({'margin-top':'1em',overflow:'hidden', display:'flex',
-  'justify-content':'space-between', width: '100%', flex:'0 0 auto'});
+  if(site.boOpenVote==0) tableButton.hide();
+  el.filterInfo=filterInfoSpanExtend(createElement('span'));
+  var filterButton=createElement('button').myAppend(langHtml.Filter,': (',el.filterInfo,')').css({'margin-left':'auto'}).on('click', function(){  filterButtonClick();  });
 
-  el.deleteButton=createElement('button').myAppend(langHtml.DeleteMyVote).on('click', function(){var vec=[['UDelete',{},el.setAllOff]];   majax(vec);});
 
-  el.append(topDivA,table,el.deleteButton);
+  el.deleteButton=createElement('button').myAppend(langHtml.DeleteMyVote).on('click', function(){var vec=[['UDelete',{},el.setAllOff]];   majax(vec);}).hide();
+
+  var butTheme=createElement('button').myText(charBlackWhite).on('click',function(){ 
+    doHistPush({view:themePop, strView:'themePop'});
+    themePop.setVis();
+  })
+
+  var divBottom=createElement('div').myAppend(butAdmin, tableButton, el.deleteButton, butTheme, filterButton).addClass('footDiv')
+  divBottom.css({'min-height':'3em', 'padding-left':'0.8em'});
+
+  var divCont=createElement('div').myAppend(table).css({'margin-bottom':'3em'})
+  el.append(divCont, divBottom);
   return el;
 }
 
@@ -737,9 +868,11 @@ var summaryDivExtend=function(el){
 
 
 var adminDivExtend=function(el){ 
-  el.toString=function(){return 'adminDiv';}
+  el.strName='adminDiv'
+  el.id=el.strName
+  el.toString=function(){return el.strName;}
   
-  var buttonBack=createElement('button').on('click', historyBack).myAppend(langHtml.Back).css({'margin-right':'1em'});
+  var buttonBack=createElement('button').myText(charBack).on('click', historyBack).css({'margin-right':'1em'});
   //var buttonSave=createElement('button').on('click', saveFunc).myAppend(langHtml.Save);
   var topDiv=createElement('div').myAppend(buttonBack).css({padding:'0 0.3em','margin-top':'1em',overflow:'hidden'});
 
@@ -753,30 +886,35 @@ var adminDivExtend=function(el){
 //
 // voterInfoDivExtend
 //
-
-var updateTableThumb=function(el,iRow){
-  var canvas=el,  ctx = canvas.getContext("2d");
-  //var heightRow=2; if(nMTab<4) heightRow=5; if(nMTab<4) heightRow=10;
-  var heightRow=2; if(nMTab*2<15) heightRow=Math.round(15/nMTab); if(nMTab==1) heightRow=10;
-  var widthBox=25;
-  canvas.width=widthBox;   canvas.height=nMTab*heightRow;
-  for(var i=0;i<nMTab;i++){
-    ctx.beginPath(); //so start going clockwise from upper left corner
-    ctx.moveTo(0, i*heightRow);
-    ctx.lineTo(widthBox,i*heightRow);
-    ctx.lineTo(widthBox, (i+1)*heightRow);
-    ctx.lineTo(0, (i+1)*heightRow);
-    ctx.closePath();
-    var col='white'; if(i%2) col='lightgrey';
-    if(i==iRow) col='red';
-    ctx.fillStyle=col;  ctx.fill();    
+var tableThumbExtend=function(el){
+  el.update=function(iRow){
+    var canvas=el,  ctx = canvas.getContext("2d");
+    //var heightRow=2; if(nMTab<4) heightRow=5; if(nMTab<4) heightRow=10;
+    var heightRow=2; if(nMTab*2<15) heightRow=Math.round(15/nMTab); if(nMTab==1) heightRow=10;
+    var widthBox=25;
+    canvas.width=widthBox;   canvas.height=nMTab*heightRow;
+    for(var i=0;i<nMTab;i++){
+      ctx.beginPath(); //so start going clockwise from upper left corner
+      ctx.moveTo(0, i*heightRow);
+      ctx.lineTo(widthBox,i*heightRow);
+      ctx.lineTo(widthBox, (i+1)*heightRow);
+      ctx.lineTo(0, (i+1)*heightRow);
+      ctx.closePath();
+      var col='white'; if(i%2) col='lightgrey';
+      if(i==iRow) col='red';
+      ctx.fillStyle=col;  ctx.fill();    
+    }
   }
   return el;
 }
-var voterInfoDivExtend=function(el){  
-  el.toString=function(){return 'voterInfoDiv';}
+
+var voterInfoDivExtend=function(el){
+  el.strName='voterInfoDiv'
+  el.id=el.strName
+  el.toString=function(){return el.strName;}
   el.setContainers=function(iMTab){
-    arrowDiv.toggle(nMTab>1);
+    //arrowDiv.toggle(nMTab>1);
+    tableThumb.toggle(nMTab>1); arrowSpan.toggle(nMTab>1)
     var rMTab=MTab[iMTab];
     el.tr=voterListDiv.getRow(iMTab);
     var iRow=el.tr.myIndex();
@@ -785,7 +923,8 @@ var voterInfoDivExtend=function(el){
       var tmp=''; if('setF' in tmpObj) tmp=tmpObj.setF(iMTab,ele);  else tmp=MTab[iMTab][strName]; 
       if(typeof tmp!='undefined') ele.myHtml(tmp);    
     });    
-    tableThumb=updateTableThumb(tableThumb,iRow);
+    //tableThumb=updateTableThumb(tableThumb,iRow);
+    tableThumb.update(iRow);
     el.boLoaded=1;  
   }
   el.createContainers=function(){
@@ -807,21 +946,20 @@ var voterInfoDivExtend=function(el){
   
     for(var i=0;i<el.StrGroup.length;i++){
       var h=createElement('span').myAppend(langHtml[el.StrGroup[i]],':').css({'font-size':'120%','font-weight':'bold', display:'block'});
-      var elTmp=el.divCont.querySelector('div[name='+el.StrGroupFirst[i]+']'); elTmp.myBefore(createElement('hr')).myBefore(h); 
+      var elTmp=el.divCont.querySelector(`div[name=${el.StrGroupFirst[i]}]`); elTmp.myBefore(createElement('hr')).myBefore(h); 
     }
   }
 
   el.StrProp=el.StrGroup=el.StrGroupFirst=[];
-  el.divCont=createElement('div');
+  el.divCont=createElement('div').css({'margin-bottom':'4em'});
   var containers;
   
   el.boLoaded=0;
   var idIP;
 
-  var buttonBack=createElement('button').myText(langHtml.Back).addClass('fixWidth').on('click', historyBack).css({'margin-left':'0.8em','margin-right':'1em'}); 
+  var buttonBack=createElement('button').myText(charBack).addClass('fixWidth').on('click', historyBack).css({'margin':'0 auto 0 0.8em' }); 
   
-  var tableThumb=createElement('canvas').css({'margin-right':'1.5em',border:'1px solid grey','vertical-align':'top'}).on('click', function(){voterListButtonClick();});
-
+  var tableThumb=tableThumbExtend(createElement('canvas')).css({border:'1px solid var(--border-color)'})
 
   var tmpf=function(iDiff){
     var iTmp=el.tr.iMTab+iDiff;
@@ -832,13 +970,14 @@ var voterInfoDivExtend=function(el){
     }
     el.setContainers(iTmp);
   }
-  var buttonPrev=createElement('button').myText('▲').on('click', function(){tmpf(-1);}).css({display:'block','margin':'0em'});  
-  var buttonNext=createElement('button').myText('▼').on('click', function(){tmpf(1);}).css({display:'block','margin':'1.5em 0em 0em'}); 
-  var arrowSpan=createElement('span').css({display:'inline-block'}).myAppend(buttonPrev,buttonNext);
-  var arrowDiv=createElement('div').css({display:'inline-block','float':'right','margin':'0em 1.5em 0em 0em'}).myAppend(tableThumb,arrowSpan);
-  el.menuDiv=createElement('div').myAppend(buttonBack,arrowDiv).css({'margin-top':'1em','padding':'0'}); //,overflow:'hidden'
-  el.append(el.menuDiv,el.divCont);
+  var buttonPrev=createElement('button').myText('▲').on('click', function(){tmpf(-1);}).css({});  
+  var buttonNext=createElement('button').myText('▼').on('click', function(){tmpf(1);}).css({}); 
+  var arrowSpan=createElement('div').css({display:'flex', 'flex-direction':'column', gap:'0.8em', margin:'0.2em 0.8em 0.2em 0'}).myAppend(buttonPrev,buttonNext);
+  var divBottom=createElement('div').myAppend(buttonBack, arrowSpan, tableThumb).addClass('footDiv').css({'min-height':'3em'});
+  divBottom.css({padding:'0'});
+  el.append(el.divCont, divBottom);
   
+
   return el;
 }
 
@@ -980,7 +1119,6 @@ assignSiteSpecific();
 
 var oVersion=getItem('version'); app.boNewVersion=version!==oVersion;        setItem('version',version);
 
-//var tmp=createColJIndexNamesObj(cols); extend(mainCol,tmp); extend(window,tmp);
 
 var colsShowInd=['image','name','locale','timezone','homeTown'];
 
@@ -1017,7 +1155,7 @@ var curTime=0;
 //uCanonical=location.origin;
 var uCanonical=uSite;
  
-var uImageFolder=uCommon+'/'+flImageFolder+'/';
+var uImageFolder=`${uCommon}/${flImageFolder}/`;
 
 var uImCloseW=uImageFolder+'triangleRightW.png';
 var uImOpenW=uImageFolder+'triangleDownW.png';
@@ -1032,11 +1170,11 @@ var uFBFacebook=uImageFolder+'fbFacebook.png';
 var uGoogle=uImageFolder+'google.jpg';
 var uGoogleButton=uImageFolder+'googleButton.gif';
 var uIncreasing=uImageFolder+'increasing.png';
-var srcsetIncreasing=uIncreasing+" 1x, "+uIncreasing+" 2x ";
+var srcsetIncreasing=`${uIncreasing} 1x, ${uIncreasing} 2x `;
 var uDecreasing=uImageFolder+'decreasing.png';
-var srcsetDecreasing=uDecreasing+" 1x, "+uDecreasing+" 2x ";
+var srcsetDecreasing=`${uDecreasing} 1x, ${uDecreasing} 2x `;
 var uUnsorted=uImageFolder+'unsorted.png';
-var srcsetUnsorted=uUnsorted+" 1x, "+uUnsorted+" 2x ";
+var srcsetUnsorted=`${uUnsorted} 1x, ${uUnsorted} 2x `;
 var uOpenId=uImageFolder+'openid-inputicon.gif';
 var uOI22=uImageFolder+'oi22.png';
 var uBusy=uImageFolder+'busy.gif';
@@ -1044,7 +1182,7 @@ var uBusyLarge=uImageFolder+'busyLarge.gif';
 var uDelete=uImageFolder+'delete.png';
 var uDelete1=uImageFolder+'delete1.png';
 var uList16=uImageFolder+'list16.png';
-var srcsetList=uList16+" 1x, "+uList16+" 2x";
+var srcsetList=`${uList16} 1x, ${uList16} 2x`;
 var uFilter=uImageFolder+'filter.png';
 var uDummy=uImageFolder+'dummy.gif';
 
@@ -1069,7 +1207,7 @@ var divMessageTextWInner=createElement('div').myAppend(divMessageText).css({marg
 var divMessageTextW=createElement('div').myAppend(divMessageTextWInner).css({width:'100%', position:'fixed', bottom:'0px', left:'0px', 'z-index':'10'});
 elBody.append(divMessageTextW);
 
-var busyLarge=createElement('img').prop({src:uBusyLarge, alt:"busy"}).css({position:'fixed',top:'50%',left:'50%','margin-top':'-42px','margin-left':'-42px','z-index':'1000',border:'black solid 1px'}).hide();
+var busyLarge=createElement('img').prop({src:uBusyLarge, alt:"busy"}).css({position:'fixed',top:'50%',left:'50%','margin-top':'-42px','margin-left':'-42px','z-index':'1000',border:'var(--border-color) solid 1px'}).hide();
 elBody.append(busyLarge);
 
 
@@ -1078,11 +1216,16 @@ addStuffMy();
 
 var tmp=getItem('boFirstVisit'),  boFirstVisit=tmp===null;      setItem('boFirstVisit',0);
 
+var imgListProt=createElement('img').prop({srcset:srcsetList, alt:"list"}).css({height:'0.9em','vertical-align':'middle'}).addClass('invertOnDark');
 
 var boFirstAJAX=true;
 
+var charBack='◄';
+app.charQuestionMark='❓'  //❓?
+var charBlackWhite='◩'
+
 app.imgHelp=createElement('img').prop({src:uHelpFile, alt:"help"}).css({'vertical-align':'-0.4em'});
-app.hovHelpMy=createElement('span').myText('❓').addClass('btn-round', 'helpButtonGradient').css({color:'transparent', 'text-shadow':'0 0 0 #5780a8'});
+app.hovHelpMy=createElement('span').myText(charQuestionMark).addClass('btn-round', 'helpButton').css({color:'transparent', 'text-shadow':'0 0 0 #5780a8'});
 app.imgHelp=hovHelpMy;
 
 
@@ -1125,7 +1268,7 @@ window.on('popstate', function(event) {
 
     var stateMy=history.StateMy[history.state.ind];
     if(typeof stateMy!='object' ) {
-      var tmpStr=window.location.href +" Error: typeof stateMy: "+(typeof stateMy)+', history.state.ind:'+history.state.ind+', history.StateMy.length:'+history.StateMy.length+', Object.keys(history.StateMy):'+Object.keys(history.StateMy);
+      var tmpStr=`${window.location.href} Error: typeof stateMy: ${(typeof stateMy)}, history.state.ind:${history.state.ind}, history.StateMy.length:${history.StateMy.length}, Object.keys(history.StateMy):${Object.keys(history.StateMy)}`;
       if(!boEpiphany) alert(tmpStr); else  console.log(tmpStr);
       debugger;
       return;
@@ -1159,14 +1302,20 @@ if(boFF){
 
 
 
-window.objFilterSetting={colButtAllOn:'#9f9', colButtOn:'#0f0', colButtOff:'#ddd', colFiltOn:'#bfb', colFiltOff:'#ddd', colFontOn:'#000', colFontOff:'#777', colActive:'#65c1ff', colStapleOn:'#f70', colStapleOff:'#bbb', maxStaple:20};
+window.objFilterSetting={colButtAllOn:'#9f9', colButtOn:'#0f0', colButtOff:'#ddd', colFiltOn:'#bfb', colFiltOff:'#ddd', colFontOn:'#000', colFontOff:'#777', colActive:'#65c1ff', colStapleOn:'#f70', colStapleOff:'#bbb', maxStaple:20, colBg:'var(--bg-color)'};
 
 
 var uInfo='https://emagnusandersson.com/nsVote'; 
 var uSrc='https://github.com/emagnusandersson/nsVote';
 var aLink=createElement('a').prop({href:uInfo}).myAppend('more info').css({'font-size':'100%','font-weight':'bold',margin:'0.1em 0em 1.5em',display:'inline-block'});   
-  
-var loginPop=loginPopExtend(createElement('div'));
+
+
+window.boDialog=1
+var strPopElementType='div';
+var strPopElementType='dialog'
+var strPopElementType=boDialog?'dialog':'div'
+var loginPop=loginPopExtend(createElement(strPopElementType));
+var themePop=themePopExtend(createElement(strPopElementType));
 
 var adminDiv=adminDivExtend(createElement('div')); 
 
@@ -1174,13 +1323,7 @@ var adminDiv=adminDivExtend(createElement('div'));
 var filts=[];//hists=[];
 
 
-  // filterDivs
-var filterInfoSpan=filterInfoSpanExtend(createElement('span'));
-//filterInfoWrap=createElement('span').myAppend(filterInfoSpan);
-//var tmpImg=createElement('img').prop({src:uFilter}).css({height:'1em',width:'1em','vertical-align':'text-bottom'});//,'vertical-align':'middle'
-//filterButton=createElement('button').myAppend(tmpImg,' (',filterInfoWrap,')').addClass('flexWidth').css({'float':'right','clear':'both'});//.css({background:colMenuOff});
 var filterDiv=new FilterDiv(Prop, extend({},langHtml.label), StrOrderFilt, loadTabStart);
-filterDiv.css({'background-color':'#eee','padding-bottom':'0.6em'});
 
 
 //rowButtCom=rowButtComExtend({});
@@ -1192,18 +1335,15 @@ var voterInfoDiv=voterInfoDivExtend(createElement('div'));
 
 //var iframeLike=createElement('iframe');
 
-var tmpImg=createElement('img').prop({srcset:srcsetList, alt:"list"}).css({height:'0.9em','vertical-align':'middle'});
-var tableButton=createElement('button').myAppend(tmpImg).css({'margin-right':'1em'}).prop({'aria-label':"List of voters"});
+
 
 var butAdmin=createElement('button').myText('≡').css({'margin-left':'0.6em','margin-right':'1em'}).on('click',function(){ 
   adminDiv.setVis(); doHistPush({view:adminDiv});
 }).hide();
 
 
-var voterListHead=voterListHeadExtend(createElement('div')).css({padding:'0 0.3em','text-align':'left'});
-var voterListTHead=voterListTHeadExtend(createElement('thead')).css({'text-align':'center'});  
-var voterListDiv=voterListDivExtend(createElement('div'));  voterListDiv.css({margin:'0em 0 0.9em 0'});  voterListDiv.table.css({border:'black 1px solid'}); //,display:'table'
-voterListDiv.table.prepend(voterListTHead);
+var voterListDiv=voterListDivExtend(createElement('div'));  
+
 
 var summaryDiv=elBody.querySelector('#summaryDiv');
 summaryDiv.querySelector('noscript').detach();
@@ -1214,83 +1354,84 @@ var divLoginInfo=divLoginInfoExtend(createElement('div')).addClass('mainDivR').c
 divEntryBar.after(divLoginInfo);
 
 summaryDivExtend(summaryDiv);
-summaryDiv.filterInfoWrap.myAppend(filterInfoSpan);
 
 
 rewriteObj();
 
 filterDiv.divCont.createDivs();  //filterDiv.divCont.filtsClearSetup(); filterDiv.divCont.filtsDefault();  filterDiv.divCont.histsClearSetup();
-voterListDiv.createTBody();   voterListDiv.setRowDisp();  voterListDiv.css({margin:'0em 0 0.9em 0'});
-voterListTHead.myCreate();
+voterListDiv.createTBody();   voterListDiv.setRowDisp();  
+voterListDiv.voterListTHead.myCreate();
 voterInfoDiv.createContainers();
 
-
-var MainDiv=[summaryDiv, loginPop, adminDiv, filterDiv, columnSelectorDiv, columnSorterDiv, voterInfoDiv, voterListHead, voterListDiv]; //, divEntryBar, divLoginInfo, H1, 
+var MainDivFull=[summaryDiv, adminDiv, filterDiv, voterInfoDiv, voterListDiv];// columnSelectorDiv, columnSorterDiv
+var MainDivPop=[loginPop, themePop]
+var MainDiv=[].concat(MainDivFull, MainDivPop)
 
 var StrMainDiv=MainDiv.map(obj=>obj.toString());
 var StrMainDivFlip=array_flip(StrMainDiv);
 
-var tmpCss={'border-top':'1px solid white', 'margin-left':'auto', 'margin-right':'auto','text-align':'left',background:'#fff'};   
-MainDiv.forEach(ele=>ele.css(tmpCss));
-AMinusB(MainDiv, [voterListDiv]).forEach(ele=>ele.css({'max-width':maxWidth}));
+var tmpCss={'margin-left':'auto', 'margin-right':'auto','text-align':'left'};   //'border-top':'1px solid white', ,background:'var(--bg-color)'
+AMinusB(MainDivFull, [voterListDiv]).forEach(ele=>ele.css(tmpCss));
+AMinusB(MainDivFull, [voterListDiv]).forEach(ele=>ele.css({'max-width':maxWidth}));
 
-voterListDiv.css({'text-align':'center', 'min-width':'800px',display:'inline-block','text-align':'left'});
-voterListDiv.querySelector('table').css({'margin-top':'1em'});
 
 //H1.css({background:'#ff0',border:'solid 1px',color:'black','font-size':'1.6em','font-weight':'bold','text-align':'center', padding:'0.4em 0em 0.4em 0em'}); 
 
-AMinusB(MainDiv, [summaryDiv]).forEach(ele=>ele.hide());
-
-elBody.append(...MainDiv);  
 
 history.StateMy[history.state.ind]={view:summaryDiv};
 
 
-var voterListButtonClick=function(){ 
- voterListDiv.setVis();  doHistPush({view:voterListDiv}); 
-}
 var filterButtonClick=function(){ 
  filterDiv.setVis(); doHistPush({view:filterDiv});
 }
-tableButton.on('click',voterListButtonClick);
+
+
+
+var closeAllView=function(){
+  MainDiv.forEach(ele=>{
+    if(ele.nodeName=='DIALOG') {if(ele.open) ele.close();} else
+    ele.hide();
+  });
+}
+
 
 
 summaryDiv.setVis=function(){
-  MainDiv.forEach(ele=>ele.hide()); this.show();
-  summaryDiv.filterInfoWrap.append(filterInfoSpan);
+  closeAllView(); this.show();
   return true;
 }
 voterListDiv.setVis=function(){
-  MainDiv.forEach(ele=>ele.hide()); this.show(); voterListHead.show();
-  voterListHead.filterInfoWrap.append(filterInfoSpan);
+  closeAllView(); this.show();
   return true;
 }
 filterDiv.setVis=function(){
-  MainDiv.forEach(ele=>ele.hide()); this.show();
-  filterDiv.filterInfoWrap.append(filterInfoSpan);
+  closeAllView(); this.show();
   return true;
 }
 voterInfoDiv.setVis=function(){
   if(voterInfoDiv.boLoaded==0) return false;
-  MainDiv.forEach(ele=>ele.hide()); this.show();
+  closeAllView(); this.show();
   return true;
 }
 adminDiv.setVis=function(){
-  MainDiv.forEach(ele=>ele.hide()); this.show();
+  closeAllView(); this.show();
   return true;
 }
 columnSelectorDiv.setVis=function(){
   if(columnSelectorDiv.boLoaded==0) return false;
-  MainDiv.forEach(ele=>ele.hide()); this.show();
+  closeAllView(); this.show();
   return true;
 }
 columnSorterDiv.setVis=function(){
   if(columnSorterDiv.boLoaded==0) return false;
-  MainDiv.forEach(ele=>ele.hide()); this.show();
+  closeAllView(); this.show();
   return true;
 }
 
 
+elBody.append(...MainDiv);  
+closeAllView();
+summaryDiv.setVis()
 
 var vec=[['specSetup',{}],['setUp',{}],['setUpCond',{Filt:filterDiv.divCont.gatherFiltData()},voterListDiv.setUpCondRet],['getList',{offset:0,rowCount:maxVoterDisp},voterListDiv.getListRet],['getHist',null,getHistRet]];   majax(vec);
 setMess('... fetching data... ',0,true);

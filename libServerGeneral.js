@@ -171,25 +171,25 @@ app.md5=function(str){return myCrypto.createHash('md5').update(str).digest('hex'
 // }
   
   // ioredis 
-  app.getRedis=async function(strVar, boObj=false){
-    var [err,data]=await redis.get(strVar).toNBP();  if(boObj) data=JSON.parse(data);  return [err,data];
-  }
-  app.setRedis=async function(strVar, val, tExpire=-1){
-    if(typeof val!='string') var strA=JSON.stringify(val); else var strA=val;
-    var arr=[strVar,strA];  if(tExpire>0) arr.push('EX',tExpire);   var [err,strTmp]=await redis.set(...arr).toNBP();
-    return [err,strTmp];
-  }
-  app.expireRedis=async function(strVar, tExpire=-1){
-    if(tExpire==-1) var [err,strTmp]=await redis.persist(strVar).toNBP();
-    else var [err,strTmp]=await redis.expire(strVar,tExpire).toNBP();
-    return [err,strTmp];
-  }
-  app.delRedis=async function(arr){ 
-    if(!(arr instanceof Array)) arr=[arr];
-    var [err,strTmp]=await redis.del(...arr).toNBP();
-    return [err,strTmp];
-  }
-  app.existsRedis=async function(strVar){  return await redis.exists(strVar).toNBP();  }
+app.getRedis=async function(strVar, boObj=false){
+  var [err,data]=await redis.get(strVar).toNBP();  if(boObj) data=JSON.parse(data);  return [err,data];
+}
+app.setRedis=async function(strVar, val, tExpire=-1){
+  if(typeof val!='string') var strA=JSON.stringify(val); else var strA=val;
+  var arr=[strVar,strA];  if(tExpire>0) arr.push('EX',tExpire);   var [err,strTmp]=await redis.set(...arr).toNBP();
+  return [err,strTmp];
+}
+app.expireRedis=async function(strVar, tExpire=-1){
+  if(tExpire==-1) var [err,strTmp]=await redis.persist(strVar).toNBP();
+  else var [err,strTmp]=await redis.expire(strVar,tExpire).toNBP();
+  return [err,strTmp];
+}
+app.delRedis=async function(arr){ 
+  if(!(arr instanceof Array)) arr=[arr];
+  var [err,strTmp]=await redis.del(...arr).toNBP();
+  return [err,strTmp];
+}
+app.existsRedis=async function(strVar){  return await redis.exists(strVar).toNBP();  }
    
 
     // closebymarket

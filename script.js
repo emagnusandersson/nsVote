@@ -106,7 +106,7 @@ else{
 } 
 var strMd5Config=md5(strConfig);
 eval(strConfig);
-var redisVar='str'+ucfirst(strAppName)+'Md5Config';
+var redisVar=`str${ucfirst(strAppName)}Md5Config`;
 var [err,tmp]=await getRedis(redisVar); if(err) {console.error(err); process.exit(-1);}
 var boNewConfig=strMd5Config!==tmp; 
 if(boNewConfig) { var [err,tmp]=await setRedis(redisVar,strMd5Config);   if(err) {console.error(err); process.exit(-1);}      }
@@ -137,7 +137,7 @@ if(typeof argv.sql!='undefined'){
   var [err]=await setupSql.doQuery(argv.sql);
   setupSql.myMySql.fin();
   if(err) {  console.error(err);  process.exit(-1);}
-  console.log('Time elapsed: '+(new Date().getTime()-tTmp)/1000+' s'); 
+  console.log(`Time elapsed: ${(new Date().getTime()-tTmp)/1000} s`); 
   process.exit(0);
 }
 
@@ -176,9 +176,9 @@ app.strCookiePropStrict=";"+StrCookiePropProt.concat("SameSite=Strict").join(';'
 var luaDDosCounterFun=`local c=redis.call('INCR',KEYS[1]); redis.call('EXPIRE',KEYS[1], ARGV[1]); return c`
 redis.defineCommand("myDDosCounterFun", { numberOfKeys: 1, lua: luaDDosCounterFun });
 
-var luaDogFeederFun=`local c=redis.call('GET',KEYS[1]); redis.call('EXPIRE',KEYS[1], ARGV[1]); return c`;
-//var luaDogFeederFun=`local c=redis.call('GET',KEYS[1]); if(c) then redis.call('EXPIRE',KEYS[1], ARGV[1]); end; return c`;
-redis.defineCommand("myDogFeederFun", { numberOfKeys: 1, lua: luaDogFeederFun });
+var luaGetNExpire=`local c=redis.call('GET',KEYS[1]); redis.call('EXPIRE',KEYS[1], ARGV[1]); return c`;
+//var luaGetNExpire=`local c=redis.call('GET',KEYS[1]); if(c) then redis.call('EXPIRE',KEYS[1], ARGV[1]); end; return c`;
+redis.defineCommand("myGetNExpire", { numberOfKeys: 1, lua: luaGetNExpire });
 
 
 //handler=function(req, res){
@@ -247,7 +247,7 @@ const handler=async function(req, res){
     
     // If the counter is to high, then respond with 429
   if(intCount>intDDOSMax) {
-    var strMess="Too Many Requests ("+intCount+"), wait "+tDDOSBan+"s\n";
+    var strMess=`Too Many Requests (${intCount}), wait ${tDDOSBan}s\n`;
     if(pathName=='/'+leafBE){ var reqBE=new ReqBE({req, res}); reqBE.mesEO(strMess,429); }
     else res.outCode(429,strMess);
     return;
@@ -255,8 +255,8 @@ const handler=async function(req, res){
   
     // Refresh / create  redisVarSessionCache
   if(req.boCookieNormalOK){
-    //var [err, value]=await cmdRedis('EVAL',[luaDogFeederFun, 1, redisVarSessionCache, maxUnactivity]); if(err) {console.error(err); process.exit(1);}
-    var [err, value]=await redis.myDogFeederFun(redisVarSessionCache, maxUnactivity).toNBP(); if(err) {console.error(err); process.exit(1);}
+    //var [err, value]=await cmdRedis('EVAL',[luaGetNExpire, 1, redisVarSessionCache, maxUnactivity]); if(err) {console.error(err); process.exit(1);}
+    var [err, value]=await redis.myGetNExpire(redisVarSessionCache, maxUnactivity).toNBP(); if(err) {console.error(err); process.exit(1);}
     req.sessionCache=JSON.parse(value);
   } else { 
     var [err]=await setRedis(redisVarSessionCache,{}, maxUnactivity);   if(err) {console.error(err); process.exit(1);}

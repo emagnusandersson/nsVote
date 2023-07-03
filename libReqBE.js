@@ -28,7 +28,7 @@ ReqBE.prototype.mesEO=function(errIn, statusCode=500){
   var boString=typeof errIn=='string';
   var err=errIn; 
   if(boString) { this.Str.push('E: '+errIn); err=new MyError(errIn); } 
-  else{  var tmp=err.syscal||''; this.Str.push('E: '+tmp+' '+err.code);  }
+  else{  var tmp=err.syscal||''; this.Str.push(`E: ${tmp} ${err.code}`);  }
   console.log(err.stack);
   GRet.strMessageText=this.Str.join(', ');
   GRet.userInfoFrIP=this.sessionCache.userInfoFrIP; 
@@ -210,7 +210,7 @@ ReqBE.prototype.setUp=async function(inObj){  // Set up some properties etc.  (c
     var boCopy=tNow>tSnapShot+ageMaxSnapShot;    // If too much time has elapsed then "copy".
     if(boCopy){
       console.log('Making snapshot...');
-      var sql=`CALL copyTable('`+userSnapShotTab+`','`+userTab+`');`, Val=[ageMaxSnapShot];
+      var sql=`CALL copyTable('${userSnapShotTab}','${userTab}');`, Val=[ageMaxSnapShot];
       var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
       var tSnapShot=unixNow();
       var [err]=await setRedis(redisVar, tSnapShot); if(err) return [err];
@@ -247,7 +247,7 @@ ReqBE.prototype.getList=async function(inObj){
   var offset=Number(inObj.offset), rowCount=Number(inObj.rowCount);
   var Val=[];
   var strCond=array_filter(this.Where).join(' AND '); if(strCond.length) strCond=' WHERE '+strCond;
-  var sql="SELECT SQL_CALC_FOUND_ROWS "+site.strSel+" FROM "+userTab+" u "+strCond+" GROUP BY u.idUser ORDER BY lastActivity DESC LIMIT "+offset+","+rowCount+";", Val=[];
+  var sql=`SELECT SQL_CALC_FOUND_ROWS ${site.strSel} FROM ${userTab} u ${strCond} GROUP BY u.idUser ORDER BY lastActivity DESC LIMIT ${offset},${rowCount};`, Val=[];
   var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
 
   //Ou.tab=arrObj2TabNStrCol(results);
@@ -264,7 +264,7 @@ ReqBE.prototype.getList=async function(inObj){
   var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
   var nFound=results[0].n;   this.Str.push("Found: "+nFound);
 
-  var sql="SELECT count(*) AS nTot FROM "+userTab+";", Val=[];
+  var sql=`SELECT count(*) AS nTot FROM ${userTab};`, Val=[];
   var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
   Ou.NVoter=[nFound, results[0].nTot];
 
@@ -280,7 +280,7 @@ ReqBE.prototype.getHist=async function(inObj){
   var {userTab}=TableName;
   if(boUseSnapShot){  userTab=TableName.userSnapShotTab; }
 
-  //var strTableRef=userTab+" u JOIN "+choiseTab+" c ON u.idUser=c.idUser "; 
+  //var strTableRef=`${userTab} u JOIN ${choiseTab} c ON u.idUser=c.idUser `; 
   var strTableRef=userTab+" u "; 
   
   var arg={strTableRef, WhereExtra:[]};  
@@ -322,12 +322,12 @@ ReqBE.prototype.UUpdate=async function(inObj){ // writing needSession
     // If "choise" is empty
   if(boChoiseSet && objVar.choise===null){
     var Sql=[];
-    Sql.push("DELETE FROM "+userTab+" WHERE IP=? AND idIP=?;");
+    Sql.push(`DELETE FROM ${userTab} WHERE IP=? AND idIP=?;`);
     var Val=[IP, idIP];
     var sql=Sql.join('\n');
     var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
     var n=results.affectedRows, pluralS=n==1?'':'s';
-    this.mes(n+' user'+pluralS+' deleted');
+    this.mes(`${n} user${pluralS} deleted`);
     return [null,[Ou]];
   }
 
@@ -349,7 +349,7 @@ ReqBE.prototype.UUpdate=async function(inObj){ // writing needSession
     //if('voterUpdF' in Prop[name]) { var tmp=Prop[name].voterUpdF.call(Prop,name,value);  QMark=tmp[0]; value=tmp[1]; }
 
     //arrVal.push(value);
-    //arrUpdQM.push("`"+name+"`="+QMark);
+    //arrUpdQM.push(`\`${name}\`=${QMark}`);
     //arrInsQM.push(QMark);
   //}
 
@@ -359,8 +359,8 @@ ReqBE.prototype.UUpdate=async function(inObj){ // writing needSession
 
   //var strAuthCol="IP,idIP", strAuthInsQ="?,?";
 
-  //var sql=`INSERT INTO `+userTab+` (`+strAuthCol+` `+strCol+`, lastActivity, created) VALUES (`+strAuthInsQ+` `+strInsQ+`, now(), now())
-    //ON DUPLICATE KEY UPDATE idUser=LAST_INSERT_ID(idUser)  `+strUpdQ+`, lastActivity=now()`;  
+  //var sql=`INSERT INTO ${userTab} (${strAuthCol} ${strCol}, lastActivity, created) VALUES (${strAuthInsQ} ${strInsQ}, now(), now())
+    //ON DUPLICATE KEY UPDATE idUser=LAST_INSERT_ID(idUser)  ${strUpdQ}, lastActivity=now()`;  
   //var Val=[].concat([IP, idIP], arrVal, arrVal);
   
 
@@ -373,13 +373,13 @@ ReqBE.prototype.UUpdate=async function(inObj){ // writing needSession
     var QMark='?';
     if('voterUpdF' in Prop[name]) { var [QMark, value]=Prop[name].voterUpdF.call(Prop,name,value); }
 
-    arrUpdQM.push("`"+name+"`="+QMark);  arrVal.push(value);
+    arrUpdQM.push(`\`${name}\`=${QMark}`);  arrVal.push(value);
   }
 
   var strUpdQ=arrUpdQM.join(', '); if(strUpdQ.length) strUpdQ=', '+strUpdQ;
 
-  var sql=`INSERT INTO `+userTab+` SET IP=?, idIP=?`+strUpdQ+`, lastActivity=now(), created=now()
-    ON DUPLICATE KEY UPDATE idUser=LAST_INSERT_ID(idUser)`+strUpdQ+`, lastActivity=now()`;  
+  var sql=`INSERT INTO ${userTab} SET IP=?, idIP=?${strUpdQ}, lastActivity=now(), created=now()
+    ON DUPLICATE KEY UPDATE idUser=LAST_INSERT_ID(idUser)${strUpdQ}, lastActivity=now()`;  
   var Val=[].concat([IP, idIP], arrVal, arrVal);
   
   
@@ -415,7 +415,7 @@ ReqBE.prototype.UDelete=async function(inObj){ // writing needSession
   var idUser=this.sessionCache.userInfoFrDB.voter.idUser; 
 
   var Sql=[];
-  Sql.push("DELETE FROM "+userTab+" WHERE idUser=?;");
+  Sql.push(`DELETE FROM ${userTab} WHERE idUser=?;`);
   var Val=[idUser,idUser];
   var sql=Sql.join('\n');
   var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];

@@ -38,7 +38,7 @@ app.runIdIP=async function(IP, idIP, StrRole=['voter','admin']){ //check  idIP a
 
   var makeRoleAFunc=function(role){ return function(results){ 
     var c=results.length;  
-    userInfoFrDBUpd[role]=c==1?results[0]:0; if(c>1){ console.log("count>1 ("+c+")"); } 
+    userInfoFrDBUpd[role]=c==1?results[0]:0; if(c>1){ console.log(`count>1 (${c})`); } 
   }}
   var userInfoFrDBUpd={};
 
@@ -51,14 +51,14 @@ app.runIdIP=async function(IP, idIP, StrRole=['voter','admin']){ //check  idIP a
         //arrName.push(name);
         var tmp;
         //if(name in SelOneF){tmp=SelOneF[name](name)+" AS "+name;}
-        if('selOneF' in Prop[name]){tmp=Prop[name].selOneF(name)+" AS `"+name+"`";}
-        else tmp="`"+name+"`";
+        if('selOneF' in Prop[name]){tmp=`${Prop[name].selOneF(name)} AS \`${name}\``;}
+        else tmp=`\`${name}\``;
         arrCol.push(tmp);
       }
     }
     var tmp=arrCol.join(', ');
-    Sql.push("SELECT "+tmp+" FROM "+userTab+" u WHERE IP="+IP+" AND idIP="+idIP+";");
-    //Sql.push("SELECT choise FROM ("+userTab+" u JOIN "+choiseTab+" c ON u.idUser=c.idUser) WHERE IP="+IP+" AND idIP="+idIP+";");
+    Sql.push(`SELECT ${tmp} FROM ${userTab} u WHERE IP=${IP} AND idIP=${idIP};`);
+    //Sql.push(`SELECT choise FROM (${userTab} u JOIN ${choiseTab} c ON u.idUser=c.idUser) WHERE IP=${IP} AND idIP=${idIP};`);
     Fin.push(makeRoleAFunc('voter'));
     //Fin.push(function(results){  if(typeof userInfoFrDBUpd.voter=='object') userInfoFrDBUpd.voter.choise=results[0].choise;  });
     //Fin.push(function(results){
@@ -69,7 +69,7 @@ app.runIdIP=async function(IP, idIP, StrRole=['voter','admin']){ //check  idIP a
   }
   
   if(StrRole.indexOf('admin')!=-1){
-    Sql.push("SELECT * FROM "+adminTab+" a JOIN "+userTab+" u ON a.idUser=u.idUser WHERE IP="+IP+" AND idIP="+idIP+";");
+    Sql.push(`SELECT * FROM ${adminTab} a JOIN ${userTab} u ON a.idUser=u.idUser WHERE IP=${IP} AND idIP=${idIP};`);
     Fin.push(makeRoleAFunc('admin'));
   }
 
@@ -147,7 +147,7 @@ var createSiteSpecificClientJS=function(siteName) {
   //copySome(objOut,site,['wwwSite']);
   objOut.site=siteSimplified;
 
-  Str.push(`var tmp=`+JSON.stringify(objOut)+`;\n Object.assign(window, tmp);`);
+  Str.push(`var tmp=${JSON.stringify(objOut)};\n Object.assign(window, tmp);`);
 
   Str.push("}");
 
@@ -162,8 +162,8 @@ var createSiteSpecificClientJS=function(siteName) {
 app.createManifest=function(siteName){
   var site=Site[siteName], {wwwSite, icons}=site;
   var uSite="https://"+wwwSite;
-  let objOut={theme_color:"#ff0", background_color:"#fff", display:"minimal-ui", prefer_related_applications:false, short_name:siteName, name:siteName, start_url: uSite, icons }
-
+  let objOut={display:"minimal-ui", prefer_related_applications:false, short_name:siteName, name:siteName, start_url: uSite, icons }
+  ///theme_color:"#fff", background_color:"#fff", 
   //let str=serialize(objOut);
   let str=JSON.stringify(objOut);
   return str;
