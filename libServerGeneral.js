@@ -20,10 +20,13 @@ app.parseCookies=function(req) {
 // Mysql
 //
 
+
 app.MyMySql=function(pool){ this.pool=pool; this.connection=null;  }
 MyMySql.prototype.getConnection=async function(){
   var [err, connection]= await new Promise(resolve=>{   this.pool.getConnection((...arg)=>resolve(arg));    });
-  this.connection=connection; return [err];
+  this.connection=connection;
+  //console.log(`MyMySql.getConnection threadId: ${connection.threadId}`)
+  return [err];
 }
 MyMySql.prototype.startTransaction=async function(){
   if(!this.connection) {var [err]=await this.getConnection(); if(err) return [err];}
@@ -40,18 +43,26 @@ MyMySql.prototype.rollback=async function(){  await new Promise(resolve=>{this.c
 MyMySql.prototype.commit=async function(){
   var err=await new Promise(resolve=>{   this.connection.commit(eT=>resolve(eT));   });   return [err];
 }
-MyMySql.prototype.rollbackNRelease=async function(){  await new Promise(resolve=>{this.connection.rollback(()=>resolve())});  this.connection.release(); }
-MyMySql.prototype.commitNRelease=async function(){
-  var err=await new Promise(resolve=>{this.connection.commit(eT=>resolve(eT));  });  this.connection.release();  return [err];
+MyMySql.prototype.rollbackNRelease=async function(){
+  await new Promise(resolve=>{this.connection.rollback(()=>resolve())});
+  this.connection.release();
+  this.connection=null;
 }
-// MyMySql.prototype.isConnectionFree=function(){   return this.pool._freeConnections.indexOf(this.connection)!=-1;  }
-// MyMySql.prototype.fin=function(){
-//   if(this.connection) { 
-//     if(this.isConnectionFree()) this.connection.release();
-//     this.connection=null;
-//   };
-// }
-MyMySql.prototype.fin=function(){   if(this.connection) { this.connection.destroy();this.connection=null;};  }
+MyMySql.prototype.commitNRelease=async function(){
+  var err=await new Promise(resolve=>{this.connection.commit(eT=>resolve(eT));  });
+  this.connection.release();
+  this.connection=null;
+  return [err];
+}
+MyMySql.prototype.isConnectionFree=function(){   return this.pool._freeConnections.indexOf(this.connection)!=-1;  }
+MyMySql.prototype.fin=function(){
+  if(this.connection) { 
+    //if(this.isConnectionFree()) this.connection.release();
+    this.connection.release();
+    //this.connection.destroy();
+    this.connection=null;
+  };
+}
 
 
 //
@@ -71,6 +82,7 @@ app.MyError=Error;
 app.getETag=function(headers){var t=false, f='if-none-match'; if(f in headers) t=headers[f]; return t;}
 app.getRequesterTime=function(headers){if("if-modified-since" in headers) return new Date(headers["if-modified-since"]); else return false;}
 
+
 var tmp=http.ServerResponse.prototype;
 tmp.outCode=function(iCode,str){  str=str||''; this.statusCode=iCode; if(str) this.setHeader("Content-Type", MimeType.txt);   this.end(str);}
 tmp.out200=function(str){ this.outCode(200, str); }
@@ -81,12 +93,39 @@ tmp.out301Loc=function(url){  this.writeHead(301, {Location: '/'+url});  this.en
 tmp.out403=function(){ this.outCode(403, "403 Forbidden\n");  }
 tmp.out304=function(){  this.outCode(304);   }
 tmp.out404=function(str){ str=str||"404 Not Found\n"; this.outCode(404, str);    }
-tmp.out500=function(err){
-  var errN=(err instanceof Error)?err:(new MyError(err)); console.log(errN.stack);
-  this.writeHead(500, {"Content-Type": MimeType.txt});  this.end(err+ "\n");
+tmp.out500=function(e){
+  //var eN=(e instanceof Error)?e:(new MyError(e)); console.log(eN.stack);
+  if(e instanceof Error) {var mess=e.name + ': ' + e.message; console.error(e);} else {var mess=e; console.error(mess);} 
+  this.writeHead(500, {"Content-Type": MimeType.txt});  this.end(mess+ "\n");
 }
 tmp.out501=function(){ this.outCode(501, "Not implemented\n");   }
 
+
+
+tmp.setHeaderMy=function(o){
+  for(var k in o) {this.setHeader(k,o[k]);}
+}
+// tmp.addCookie=function(str){
+//   var arr=this.getHeader("Set-Cookie");
+//   if(!arr) {this.setHeader("Set-Cookie",str); return;}
+//   var boStr=typeof arr==='string'
+//   if(boStr) arr=[arr];
+//   arr.push(str);
+//   if(boStr) this.setHeader("Set-Cookie",arr);
+// }
+tmp.replaceCookie=function(strNew){
+  var arr=this.getHeader("Set-Cookie");
+  if(!arr) {this.setHeader("Set-Cookie",strNew); return;}
+  var boStr=typeof arr==='string'
+  if(boStr) arr=[arr];
+  var l=strNew.indexOf("="), strName=strNew.substr(0,l), boWritten=false;
+  for(var i=0;i<arr.length;i++){
+    var strNameCur=arr[i].substr(0,l);
+    if(strName===strNameCur) {arr[i]=strNew; boWritten=true; break;}
+  }
+  if(!boWritten) arr.push(strNew);
+  if(boStr) this.setHeader("Set-Cookie",arr);
+}
 
 
 
@@ -171,39 +210,28 @@ app.md5=function(str){return myCrypto.createHash('md5').update(str).digest('hex'
 // }
   
   // ioredis 
-  app.getRedis=async function(strVar, boObj=false){
-    var [err,data]=await redis.get(strVar).toNBP();  if(boObj) data=JSON.parse(data);  return [err,data];
-  }
-  app.setRedis=async function(strVar, val, tExpire=-1){
-    if(typeof val!='string') var strA=JSON.stringify(val); else var strA=val;
-    var arr=[strVar,strA];  if(tExpire>0) arr.push('EX',tExpire);   var [err,strTmp]=await redis.set(...arr).toNBP();
-    return [err,strTmp];
-  }
-  app.expireRedis=async function(strVar, tExpire=-1){
-    if(tExpire==-1) var [err,strTmp]=await redis.persist(strVar).toNBP();
-    else var [err,strTmp]=await redis.expire(strVar,tExpire).toNBP();
-    return [err,strTmp];
-  }
-  app.delRedis=async function(arr){ 
-    if(!(arr instanceof Array)) arr=[arr];
-    var [err,strTmp]=await redis.del(...arr).toNBP();
-    return [err,strTmp];
-  }
-  app.existsRedis=async function(strVar){  return await redis.exists(strVar).toNBP();  }
+app.getRedis=async function(strVar, boObj=false){
+  var [err,data]=await redis.get(strVar).toNBP();  if(boObj) data=JSON.parse(data);  return [err,data];
+}
+app.setRedis=async function(strVar, val, tExpire=-1){
+  if(typeof val!='string') var strA=JSON.stringify(val); else var strA=val;
+  var arr=[strVar,strA];  if(tExpire>0) arr.push('EX',tExpire);   var [err,strTmp]=await redis.set(...arr).toNBP();
+  return [err,strTmp];
+}
+app.expireRedis=async function(strVar, tExpire=-1){
+  if(tExpire==-1) var [err,strTmp]=await redis.persist(strVar).toNBP();
+  else var [err,strTmp]=await redis.expire(strVar,tExpire).toNBP();
+  return [err,strTmp];
+}
+app.delRedis=async function(arr){ 
+  if(!(arr instanceof Array)) arr=[arr];
+  var [err,strTmp]=await redis.del(...arr).toNBP();
+  return [err,strTmp];
+}
+app.existsRedis=async function(strVar){  return await redis.exists(strVar).toNBP();  }
    
 
-    // closebymarket
-  //var StrSuffix=['_Main', '_LoginIdP', '_LoginIdUser', '_UserInfoFrDB', '_Counter'];  var StrCaller=['index'], for(var i=0;i<StrCaller.length;i++){  StrSuffix.push('_CSRFCode'+ucfirst(StrCaller[i])); }
-  //var err=await changeSessionId.call(this, sessionIDNew, StrSuffix);
-app.changeSessionId=async function(sessionIDNew, StrSuffix){
-  for(var i=0;i<StrSuffix.length;i++){
-    var strSuffix=StrSuffix[i];
-    var redisVarO=this.req.sessionID+strSuffix, redisVarN=sessionIDNew+strSuffix; 
-    var [err,value]=await cmdRedis( 'rename', [redisVarO, redisVarN]); //if(err) return err;
-  }
-  this.req.sessionID=sessionIDNew;
-  return null;
-}
+
 
 app.getIP=function(req){
   var ipClient='', Match;
@@ -311,3 +339,14 @@ app.setAccessControlAllowOrigin=function(req, res, RegAllowed){
 //RegAllowedOriginOfStaticFile=[RegExp("^https\:\/\/(control\.closeby\.market|controlclosebymarket\.herokuapp\.com|emagnusandersson\.github\.io)")];
 //if(boDbg) RegAllowedOriginOfStaticFile.push(RegExp("^http\:\/\/(localhost|192\.168\.0)"));
 //setAccessControlAllowOrigin(res, req, RegAllowedOriginOfStaticFile);
+
+
+app.arrayifyCookiePropObj=function(obj){  // Ex: {a:1, b:2} => ["a=1", "b=2"]
+  var K=Object.keys(obj);
+  var O=K.map(k=>{
+    var v=obj[k];
+    if((k=="HttpOnly" || k=="Secure") && v) return k;
+    return k+"="+v;
+  });
+  return O;
+}

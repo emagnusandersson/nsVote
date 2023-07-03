@@ -207,7 +207,7 @@ app.isVisible=function(el) {
 /*******************************************************************************************************************
  * popupHover: popup a elBubble when you hover over elArea
  *******************************************************************************************************************/
-app.popupHover=function(elArea, elBubble, tClose=4){
+app.popupHover=function(elArea, elBubble, tClose=4){ //elMount, 
   elBubble.css({position:'absolute', 'box-sizing':'border-box', margin:'0px', 'text-align':'left'}); //
   function setBubblePos(e){
     var xClear=6, yClear=6;
@@ -243,6 +243,8 @@ app.popupHover=function(elArea, elBubble, tClose=4){
     if(x<scrollX) x=scrollX;
     if(y<scrollY) y=scrollY;
     //elBubble.style.top=y+'px'; elBubble.style.left=x+'px';
+    //if(!boTouch) {}
+    //x-=elMount.offsetLeft; y-=elMount.offsetTop
     elBubble.css({top:y+'px', left:x+'px'});
     //if(boRight) {elBubble.style.left=x+'px'; elBubble.style.right='';} else {elBubble.style.left=''; elBubble.style.right=x+'px'; }
     //if(boBottom) {elBubble.style.top=y+'px'; elBubble.style.bottom='';} else {elBubble.style.top=''; elBubble.style.bottom=y+'px'; } 
@@ -257,7 +259,7 @@ app.popupHover=function(elArea, elBubble, tClose=4){
   }
   var elBlanket, timer, boIOSTmp=boTouch;
   if(boIOSTmp){
-    elBlanket=createElement('div').css({'background':'#555',opacity:0,'z-index': 9001,top:'0px',left:'0px',width:'100%',position:'fixed',height:'100%'});
+    elBlanket=createElement('div').css({background:'#000', opacity:0.25, 'z-index': 9001,top:'0px',left:'0px',width:'100%',position:'fixed',height:'100%'}); //'background':'#555',
     elBlanket.on('click', closeFunc);
   }
   if(boTouch){
@@ -265,9 +267,13 @@ app.popupHover=function(elArea, elBubble, tClose=4){
       e.stopPropagation();
       if(elBubble.parentNode) closeFunc();
       else {
-        elBody.append(elBubble); setBubblePos(e);
+        var elMount=elBody
+        if(boIOSTmp) elMount.append(elBlanket);
+        //var elMount=elArea.parentElement
+        //elBlanket.append(elBubble);
+        elMount.append(elBubble);
+        setBubblePos(e);
         clearTimeout(timer);  if(tClose) timer=setTimeout(closeFunc, tClose*1000);
-        if(boIOSTmp) elBody.append(elBlanket);
       }
     });
     elBubble.on('click', closeFunc);
@@ -275,7 +281,11 @@ app.popupHover=function(elArea, elBubble, tClose=4){
     
   }else{
     elArea.on('mousemove', setBubblePos);  
-    elArea.on('mouseenter', function(e){elBody.append(elBubble);});
+    elArea.on('mouseenter', function(e){
+      var elMount=elBody
+      //var elMount=elArea.parentElement
+      elMount.append(elBubble);
+    });
     elArea.on('mouseleave', closeFunc);
   }
   elBubble.classList.add('popupHover'); 

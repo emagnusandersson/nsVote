@@ -4,21 +4,25 @@
 //
 
 
+app=globalThis
+
+app.intDDOSMax=200; // intDDOSMax: How many requests before DDOSBlocking occurs. 
+app.tDDOSBan=5; // tDDOSBan: How long in seconds till the blocking is lifted
+app.intDDOSIPMax=100; // intDDOSIPMax: How many requests before DDOSBlocking occurs. 
+app.tDDOSIPBan=10; // tDDOSIPBan: How long in seconds till the blocking is lifted
 
 
 googleSiteVerification='googleXXXXXXXXXXXXXXXX.html'; // If you use google.com/webmasters
-intDDOSMax=100; // intDDOSMax: How many request before DDOSBlocking occurs. 
-tDDOSBan=5; // tDDOSBan: How long in seconds til the blocking is lifted
 
 
 
 //
 // Endpoint urls for the IdP.
 //
-strFBVersion="v9.0"
-UrlOAuth={fb:"https://www.facebook.com/"+strFBVersion+"/dialog/oauth", google:"https://accounts.google.com/o/oauth2/v2/auth"}
-UrlToken={fb:"https://graph.facebook.com/"+strFBVersion+"/oauth/access_token", google:"https://accounts.google.com/o/oauth2/token"}
-UrlGraph={fb:"https://graph.facebook.com/"+strFBVersion+"/me", google:"https://www.googleapis.com/plus/v1/people/me"};
+strFBVersion="v20.0"
+UrlOAuth={fb:`https://www.facebook.com/${strFBVersion}/dialog/oauth`, google:"https://accounts.google.com/o/oauth2/v2/auth"}
+UrlToken={fb:`https://graph.facebook.com/${strFBVersion}/oauth/access_token`, google:"https://accounts.google.com/o/oauth2/token"}
+UrlGraph={fb:`https://graph.facebook.com/${strFBVersion}/me`, google:"https://www.googleapis.com/plus/v1/people/me"};
 strIPPrim='fb';
 
 
@@ -141,7 +145,7 @@ else if(process.env.strInfrastructure=='af'){ // appfog.com
       var sqlHost = mysql_config["hostname"];
       var portTmp = mysql_config["port"];
       var sqlDBName = mysql_config["name"];
-      UriDB.default="mysql://"+sqlUserName+':'+sqlPassword+'@'+sqlHost+'/'+sqlDBName+"?reconnect=true";
+      UriDB.default=`mysql://${sqlUserName}:${sqlPassword}@${sqlHost}/${sqlDBName}?reconnect=true`;
   }
   port = parseInt(process.env.VCAP_APP_PORT, 10);
 

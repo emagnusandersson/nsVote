@@ -71,7 +71,7 @@ app.ViewNameProt={};for(var i=0;i<StrViewsKey.length;i++) ViewNameProt[StrViewsK
 
 
 app.selEnumF=name=>name+"-1";
-app.selTimeF=name=>"UNIX_TIMESTAMP("+name+")";
+app.selTimeF=name=>`UNIX_TIMESTAMP(${name})`;
 app.updEnumBoundF=function(name,v){ v=bound( v, 0, this[name].Enum.length-1)+1;   return ['?', v];  };
 app.updTimeF=(name,v)=>['FROM_UNIXTIME(?)', v];
 
@@ -121,13 +121,13 @@ Plugin.general=function(){
   Prop.choise.binKeyF=name=>"choise";
   Prop.choise.binValueF=name=>"SUM(choise IS NOT NULL)";
 
-  //var tmpf=function(name, val){ return "UNIX_TIMESTAMP("+name+")<=UNIX_TIMESTAMP(now())-"+val; };
-  var tmpf=function(name,val){ var t=this.tNow; t=t!==null?t:"UNIX_TIMESTAMP(now())";   return "UNIX_TIMESTAMP("+name+")<="+t+"-"+val;  };
+  //var tmpf=function(name, val){ return `UNIX_TIMESTAMP(${name})<=UNIX_TIMESTAMP(now())-${val}`; };
+  var tmpf=function(name,val){ var t=this.tNow; t=t!==null?t:"UNIX_TIMESTAMP(now())";   return `UNIX_TIMESTAMP(${name})<=${t}-${val}`;  };
   Prop.created.cond0F=tmpf;
   Prop.lastActivity.cond0F=tmpf;
    
-  //var tmpf=function(name, val){ return "UNIX_TIMESTAMP("+name+")>UNIX_TIMESTAMP(now())-"+val; };
-  var tmpf=function(name,val){ var t=this.tNow; t=t!==null?t:"UNIX_TIMESTAMP(now())";   return "UNIX_TIMESTAMP("+name+")>"+t+"-"+val;  };
+  //var tmpf=function(name, val){ return `UNIX_TIMESTAMP(${name})>UNIX_TIMESTAMP(now())-${val}`; };
+  var tmpf=function(name,val){ var t=this.tNow; t=t!==null?t:"UNIX_TIMESTAMP(now())";   return `UNIX_TIMESTAMP(${name})>${t}-${val}`;  };
   Prop.created.cond1F=tmpf;
   Prop.lastActivity.cond1F=tmpf;
 
@@ -140,8 +140,8 @@ Plugin.general=function(){
   Prop.lastActivity.selF=selTimeF;
   Prop.IP.selF=selEnumF;
 
-  //var tmpf=name=>"UNIX_TIMESTAMP(now())-UNIX_TIMESTAMP(u."+name+")";
-  var tmpf=function(name){ var t=this.tNow; t=t!==null?t:"UNIX_TIMESTAMP(now())";   return t+"-UNIX_TIMESTAMP(u."+name+")";  };
+  //var tmpf=name=>`UNIX_TIMESTAMP(now())-UNIX_TIMESTAMP(u.${name})`;
+  var tmpf=function(name){ var t=this.tNow; t=t!==null?t:"UNIX_TIMESTAMP(now())";   return `${t}-UNIX_TIMESTAMP(u.${name})`;  };
   Prop.created.histCondF=tmpf;
   Prop.lastActivity.histCondF=tmpf;
   
@@ -284,8 +284,8 @@ var siteCalcValExtend=function(site,siteName){ // Adding stuff that can be calcu
   var arrCol=[];
   for(var j=0;j<KeySel.length;j++) {
     var key=KeySel[j], b=Prop[key].b, pre=Prop[key].pre||preDefault;
-    var tmp; if('selF' in Prop[key]) { tmp=Prop[key].selF(pre+key);  }   else tmp=pre+"`"+key+"`";
-    arrCol.push(tmp+" AS "+"`"+key+"`");
+    var tmp; if('selF' in Prop[key]) { tmp=Prop[key].selF(pre+key);  }   else tmp=`${pre}\`${key}\``;
+    arrCol.push(`${tmp} AS \`${key}\``);
   }
   site.strSel=arrCol.join(', ');
   

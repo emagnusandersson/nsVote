@@ -2,6 +2,20 @@
 "use strict"
 
 
+// Clicking thead in voterListDiv a few times, eventually fires a click on tbody ?!?!?
+// areYouSurePop (deleteAccountPopExtend)
+
+
+//["'] *\+ *([a-zA-Z0-9-\.\(\)\[\]_/\+ ]+) *\+ *['"]      ${$1}
+//[`] *\+ *([a-zA-Z0-9-\.\(\)\[\]_/\+]+) *\+ *[`]        ${$1}
+//` *\+ *([a-zA-Z0-9-\.\[\]_/\+]+)               ${$1}`
+//` *\+ *([a-zA-Z0-9-\.\(\)\[\]_/\+]+)           ${$1}`
+//([a-zA-Z0-9-\.\[\]_/\+]+) *\+ *[`]             `${$1}
+//([a-zA-Z0-9-\.\(\)\[\]_/\+]+) *\+ *[`]         `${$1}
+
+// \$\{([^\+\}]+)\+                 }${
+
+
 //function\(([\w,]+)\)\s*\{\s*return *
 
 /******************************************************************************
@@ -13,6 +27,18 @@ app.reqIndex=async function() {
 
   var boVideo=0;
 
+  var boSecFetch='sec-fetch-site' in req.headers
+  if(boSecFetch){
+    var strT=req.headers['sec-fetch-mode'];
+    if(!(strT=='navigate' || strT=='same-origin')) { res.outCode(400, `sec-fetch-mode header not allowed (${strT})`); return;}
+  }
+
+
+    // Set sessionIDStrict
+  var sessionIDStrict=randomHash();
+  var [err,tmp]=await setRedis(sessionIDStrict+'_Strict', 1, maxUnactivity);
+  //reqMy.outCookies.sessionIDStrict=sessionIDStrict+strCookiePropStrict
+  res.replaceCookie("sessionIDStrict="+sessionIDStrict+strCookiePropLax);
 
   var requesterCacheTime=getRequesterTime(req.headers);
 
@@ -45,35 +71,35 @@ xmlns:fb="http://www.facebook.com/2008/fbml">`);
   
   var srcIcon16=site.SrcIcon[IntSizeIconFlip[16]];
   var srcIcon114=site.SrcIcon[IntSizeIconFlip[114]];
-  Str.push('<link rel="icon" type="image/png" href="'+srcIcon16+'" />');
-  Str.push('<link rel="apple-touch-icon" href="'+srcIcon114+'"/>');
+  Str.push(`<link rel="icon" type="image/png" href="${srcIcon16}" />`);
+  Str.push(`<link rel="apple-touch-icon" href="${srcIcon114}"/>`);
 
 
 
 
-  Str.push("<meta name='viewport' id='viewportMy' content='width=device-width, initial-scale=1, minimum-scale=1'/>");
-  Str.push('<meta name="theme-color" content="#fff"/>');
+  Str.push("<meta name='viewport' id='viewportMy' content='width=device-width, initial-scale=1, minimum-scale=1, interactive-widget=resizes-content'/>");
+  //Str.push('<meta name="theme-color" content="#fff"/>');
 
 
 
   var metaKeywords=''; if('metaKeywords' in site) metaKeywords=site.metaKeywords;
   Str.push(`
-<meta name="description" content="`+site.metaDescription+`"/>
-<meta name="keywords" content="`+metaKeywords+`"/>
-<link rel="canonical" href="`+uSite+`"/>`);
+<meta name="description" content="${site.metaDescription}"/>
+<meta name="keywords" content="${metaKeywords}"/>
+<link rel="canonical" href="${uSite}"/>`);
 
   
   var uIcon200=uSite+site.SrcIcon[IntSizeIconFlip[200]];
   var fbTmp=req.rootDomain.fb, fiIdTmp=fbTmp?fbTmp.id:``;
   var tmp=`
-<meta property="og:title" content="`+site.strTitle+`"/>
+<meta property="og:title" content="${site.strTitle}"/>
 <meta property="og:type" content="website" />
-<meta property="og:url" content="`+uSite+`"/>
-<meta property="og:image" content="`+uIcon200+`"/>
-<meta property="og:site_name" content="`+wwwSite+`"/>
+<meta property="og:url" content="${uSite}"/>
+<meta property="og:image" content="${uIcon200}"/>
+<meta property="og:site_name" content="${wwwSite}"/>
 <meta property="fb:admins" content="100002646477985"/>
-<meta property="fb:app_id" content="`+fiIdTmp+`"/>
-<meta property="og:description" content="`+site.metaDescription+`"/>
+<meta property="fb:app_id" content="${fiIdTmp}"/>
+<meta property="og:description" content="${site.metaDescription}"/>
 <meta property="og:locale:alternate" content="sv_se" />
 <meta property="og:locale:alternate" content="en_US" />`;
   if(!boDbg) Str.push(tmp);
@@ -88,25 +114,25 @@ xmlns:fb="http://www.facebook.com/2008/fbml">`);
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
   })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-  ga('create', '`+tmpID+`', { 'storage': 'none' });
+  ga('create', '${tmpID}', { 'storage': 'none' });
   ga('send', 'pageview');
 </script>`;
   }
   Str.push(strTracker);
-  //ga('create', '`+tmpID+`', 'auto');
+  //ga('create', '${tmpID}', 'auto');
 
 
   var uCommon=''; if(wwwCommon) uCommon=req.strSchemeLong+wwwCommon;
   Str.push(`<script>window.app=window;</script>`);
-  //Str.push(`<base href="`+uCommon+`">`);
+  //Str.push(`<base href="${uCommon}">`);
 
   Str.push(`<style>
 :root { --maxWidth:800px; height:100%}
 body {margin:0; height:100%; display:flow-root; font-family:arial, verdana, helvetica; text-align:center;}
 .mainDiv { margin: 0em auto; height: 100%; width:100%; display:flex; flex-direction:column; max-width:var(--maxWidth) }
 .mainDivR { box-sizing:border-box; margin:0em auto; width:100%; display:flex; max-width:var(--maxWidth) }
-h1.mainH1 { box-sizing:border-box; margin:0em auto; width:100%; max-width:var(--maxWidth);  background:#ff0; border:solid 1px; color:black; font-size:1.6em; font-weight:bold; text-align:center; padding:0.4em 0em 0.4em 0em; }
-</style>`);
+h1.mainH1 { box-sizing:border-box; margin:0em auto; width:100%; max-width:var(--maxWidth); border:solid 1px; font-size:1.6em; font-weight:bold; text-align:center; padding:0.4em 0em 0.4em 0em; }
+</style>`); //background:#ff0; color:black;
 
 
     // If boDbg then set vTmp=0 so that the url is the same, this way the debugger can reopen the file between changes
@@ -114,19 +140,19 @@ h1.mainH1 { box-sizing:border-box; margin:0em auto; width:100%; max-width:var(--
     // Use normal vTmp on iOS (since I don't have any method of disabling cache on iOS devices (nor any debugging interface))
   var boDbgT=boDbg; if(boIOS) boDbgT=0;
 
-  var keyTmp=siteName+'/'+leafManifest, vTmp=boDbgT?0:CacheUri[keyTmp].eTag;     Str.push(`<link rel="manifest" href="`+uSite+`/`+leafManifest+`?v=`+vTmp+`"/>`);
+  var keyTmp=siteName+'/'+leafManifest, vTmp=boDbgT?0:CacheUri[keyTmp].eTag;     Str.push(`<link rel="manifest" href="${uSite}/${leafManifest}?v=${vTmp}"/>`);
 
     // Include stylesheets
-  var pathTmp='/stylesheets/style.css', vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push('<link rel="stylesheet" href="'+uCommon+pathTmp+'?v='+vTmp+'" type="text/css">');
+  var pathTmp='/stylesheets/style.css', vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push(`<link rel="stylesheet" href="${uCommon}${pathTmp}?v=${vTmp}" type="text/css">`);
 
     // Include site specific JS-files
   var uSite=req.strSchemeLong+wwwSite;
-  var keyCache=siteName+'/'+leafSiteSpecific, vTmp=boDbgT?0:CacheUri[keyCache].eTag;  Str.push('<script type="module" src="'+uSite+'/'+leafSiteSpecific+'?v='+vTmp+'"></script>');
+  var keyCache=siteName+'/'+leafSiteSpecific, vTmp=boDbgT?0:CacheUri[keyCache].eTag;  Str.push(`<script type="module" src="${uSite}/${leafSiteSpecific}?v=${vTmp}"></script>`);
 
     // Include JS-files
   var StrTmp=['filter.js', 'lib.js', 'libClient.js', 'lang/en.js'];
   for(var i=0;i<StrTmp.length;i++){
-    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push('<script type="module" src="'+uCommon+pathTmp+'?v='+vTmp+'"></script>');
+    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push(`<script type="module" src="${uCommon}${pathTmp}?v=${vTmp}"></script>`);
   }
 
     // Include plugins
@@ -138,17 +164,17 @@ var CreatorPlugin={};
     // Include JS-files
   var StrTmp=['client.js'];
   for(var i=0;i<StrTmp.length;i++){
-    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push('<script type="module" src="'+uCommon+pathTmp+'?v='+vTmp+'"></script>');
+    var pathTmp='/'+StrTmp[i], vTmp=boDbgT?0:CacheUri[pathTmp].eTag;    Str.push(`<script type="module" src="${uCommon}${pathTmp}?v=${vTmp}"></script>`);
   }
 
 
 
   Str.push("</head>");
   Str.push(`<body>
-<title>`+site.strTitle+`</title>
+<title>${site.strTitle}</title>
 <div id=summaryDiv class="mainDiv" style="align-items:flex-start">
 <div id=divEntryBar class="mainDivR" style="min-height:2em" visibility:hidden;></div>
-<h1 class="mainH1">`+site.strH1+`</h1>
+<h1 class="mainH1">${site.strH1}</h1>
 <noscript><div style="text-align:center">Javascript is disabled, so this app won't work.</div></noscript>
 </div>
 <form id=OpenID style="display:none">
@@ -173,10 +199,10 @@ app.reqLogin=async function(){
   var {req, res}=this, {sessionID, objQS, rootDomain, strSchemeLong}=req;
   var state=randomHash(); //CSRF protection
   var {IP,fun,caller="index",siteName}=objQS,    objT={state, IP, fun, caller, siteName};
-  var [err]=await setRedis(sessionID+'_Login', objT, 300); if(err) res.out500(err);
+  var [err]=await setRedis(sessionID+'_Login', objT, 300);   if(err) res.out500(err);
   var {wwwLoginBack,fb}=rootDomain;
   var uLoginBack=strSchemeLong+wwwLoginBack;
-  var uTmp=UrlOAuth.fb+"?client_id="+fb.id+"&redirect_uri="+encodeURIComponent(uLoginBack)+"&state="+state;
+  var uTmp=`${UrlOAuth.fb}?client_id=${fb.id}&redirect_uri=${encodeURIComponent(uLoginBack)}&state=${state}`;
     // +"&scope=user_hometown" //+'&display=popup'
   res.writeHead(302, {'Location': uTmp}); res.end();
 }
@@ -196,9 +222,9 @@ ReqLoginBack.prototype.go=async function(){
   var self=this, {req, res}=this, {sessionID, objQS}=req;
 
 
-  var redisVar=sessionID+'_Login'; // strTmp=wrapRedisSendCommand('get',[redisVar]);
+  var keyR=sessionID+'_Login'; // strTmp=wrapRedisSendCommand('get',[keyR]);
   //this.sessionLogin=JSON.parse(strTmp);
-  var [err,val]=await getRedis(redisVar,1); if(err) {this.finF(err);  return; } this.sessionLogin=val;
+  var [err,val]=await getRedis(keyR,1); if(err) {this.finF(err);  return; } this.sessionLogin=val;
   if(!this.sessionLogin) { res.out500('!sessionLogin');  return; }
   var strFun=this.sessionLogin.fun;
   var siteNameLoc=this.sessionLogin.siteName;
@@ -207,15 +233,15 @@ ReqLoginBack.prototype.go=async function(){
   
 
   //getSessionMain.call(this);
-  var [err,val]=await getRedis(req.sessionID+'_Cache',1); if(err) {this.finF(err);  return; }  this.sessionCache=val;
-  if(!this.sessionCache) { res.out500('!sessionCache');  return; } 
-  var redisVar=sessionID+'_Cache'; // tmp=wrapRedisSendCommand('expire',[redisVar,maxUnactivity]);
-  var [err]=await expireRedis(redisVar, maxUnactivity); if(err){this.finF(err); return}
+  var [err,val]=await getRedis(req.sessionID+'_Main',1); if(err) {this.finF(err);  return; }  req.sessionCache=val;
+  if(!req.sessionCache) { res.out500('!req.sessionCache');  return; } 
+  var keyR=sessionID+'_Main'; // tmp=wrapRedisSendCommand('expire',[keyR,maxUnactivity]);
+  var [err]=await expireRedis(keyR, maxUnactivity); if(err){this.finF(err); return}
 
-  if(!this.sessionCache.userInfoFrDB){
-    this.sessionCache.userInfoFrDB=extend({},specialistDefault);
+  if(!req.sessionCache.userInfoFrDB){
+    req.sessionCache.userInfoFrDB=extend({},specialistDefault);
     //setSessionMain.call(this);
-    var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err){this.finF(err); return}
+    var [err]=await setRedis(req.sessionID+'_Main', req.sessionCache, maxUnactivity); if(err){this.finF(err); return}
   }
   
 
@@ -229,7 +255,7 @@ ReqLoginBack.prototype.go=async function(){
 
   if(objQS.state==this.sessionLogin.state) {
     var {id, secret}=req.rootDomain.fb;
-    var uToGetToken=UrlToken.fb+"?client_id="+id+"&redirect_uri="+encodeURIComponent(uLoginBack)+"&client_secret="+secret+"&code="+code;
+    var uToGetToken=`${UrlToken.fb}?client_id=${id}&redirect_uri=${encodeURIComponent(uLoginBack)}&client_secret=${secret}&code=${code}`;
     // var reqStream=requestMod.get(uToGetToken); 
     // var buf=await new Promise(resolve=>{   var myConcat=concat(bT=>resolve(bT));    reqStream.pipe(myConcat);    })
     // try{ var params=JSON.parse(buf.toString()); }catch(e){ console.log(e); res.out500('Error in JSON.parse, '+e); return; }
@@ -247,7 +273,7 @@ ReqLoginBack.prototype.go=async function(){
     // interpretGraph
   //this.interpretGraph(function(err,res){ });
   var objGraph=this.objGraph;  
-  if('error' in objGraph) {  var tmp='Error accessing data from facebook'; console.log(tmp+': '+objGraph.error.type+' '+objGraph.error.message+'<br>'); res.out500(tmp);  return; }
+  if('error' in objGraph) {  var tmp='Error accessing data from facebook'; console.log(`${tmp}: ${objGraph.error.type} ${objGraph.error.message}<br>`); res.out500(tmp);  return; }
   var IP='fb', idIP=objGraph.id, nameIP=objGraph.name, nickIP=objGraph.username||nameIP;
   //var gender=objGraph.gender, locale=objGraph.locale, timezone=objGraph.timezone;
   
@@ -263,16 +289,16 @@ ReqLoginBack.prototype.go=async function(){
 
   if(typeof idIP=='undefined') {console.log("Error idIP is empty");}  else if(typeof nameIP=='undefined' ) {nameIP=idIP;}
   
-  if('userInfoFrIP' in this.sessionCache){
-    if(this.sessionCache.userInfoFrIP.IP!==IP || this.sessionCache.userInfoFrIP.idIP!==idIP){
-      this.sessionCache.userInfoFrDB=extend({},specialistDefault);    
+  if('userInfoFrIP' in req.sessionCache){
+    if(req.sessionCache.userInfoFrIP.IP!==IP || req.sessionCache.userInfoFrIP.idIP!==idIP){
+      req.sessionCache.userInfoFrDB=extend({},specialistDefault);    
     }
   }
-  this.sessionCache.userInfoFrIP={IP, idIP, nameIP, nickIP, homeTown, state};
-  //copySome(this.sessionCache.userInfoFrIP, objGraph, ['gender', 'locale', 'timezone']);
-  extend(this.sessionCache.userInfoFrIP, {gender:'male', locale:'', timezone:'0000'});
+  req.sessionCache.userInfoFrIP={IP, idIP, nameIP, nickIP, homeTown, state};
+  //copySome(req.sessionCache.userInfoFrIP, objGraph, ['gender', 'locale', 'timezone']);
+  extend(req.sessionCache.userInfoFrIP, {gender:'male', locale:'', timezone:'0000'});
   //setSessionMain.call(this);
-  var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err){res.out500(tmp); return;}
+  var [err]=await setRedis(req.sessionID+'_Main', req.sessionCache, maxUnactivity); if(err){res.out500(tmp); return;}
   this.IP=IP;this.idIP=idIP;
 
 
@@ -283,16 +309,16 @@ ReqLoginBack.prototype.go=async function(){
   var [err, result]=await runIdIP.call(this, this.IP, this.idIP);
   if(err){ res.out500(err); return; }
   
-  extend(this.sessionCache.userInfoFrDB,result); 
+  extend(req.sessionCache.userInfoFrDB, result); 
   
   //setSessionMain.call(this);
-  var [err]=await setRedis(req.sessionID+'_Cache', this.sessionCache, maxUnactivity); if(err){res.out500(err); return;}
+  var [err]=await setRedis(req.sessionID+'_Main', req.sessionCache, maxUnactivity); if(err){res.out500(err); return;}
 
-    // setCSRFCode
+    // Set CSRFCode (first load of reqIndex (when user is not logged in) then CSRFCode=='')
   var CSRFCode=randomHash();
-  var redisVar=sessionID+'_CSRFCode'+ucfirst(this.sessionLogin.caller);
-  //wrapRedisSendCommand('set',[redisVar, CSRFCode]);    var tmp=wrapRedisSendCommand('expire',[redisVar,maxUnactivity]);
-  var [err]=await setRedis(redisVar, CSRFCode, maxUnactivity); if(err){res.out500(err); return;}
+  var keyR=sessionID+'_CSRFCode'+ucfirst(this.sessionLogin.caller);
+  //wrapRedisSendCommand('set',[keyR, CSRFCode]);    var tmp=wrapRedisSendCommand('expire',[keyR,maxUnactivity]);
+  var [err]=await setRedis(keyR, CSRFCode, maxUnactivity); if(err){res.out500(err); return;}
   this.CSRFCode=CSRFCode;
 
   this.finF(null);
@@ -309,7 +335,7 @@ ReqLoginBack.prototype.finF=function(err){
     console.log('err: '+err); //console.log('results: '+results); console.log('mess: '+strMess);  console.log(req.objQS); 
   }
   //var uSite=req.strSchemeLong+req.wwwSite;
-  //<link rel='canonical' href='"+uSite+"'/>
+  //<link rel='canonical' href='${uSite}'/>
   
   var Str=this.Str;
   Str.push(`
@@ -317,15 +343,16 @@ ReqLoginBack.prototype.finF=function(err){
 </head>
 <body>
 <script>
-var boOK=`+JSON.stringify(boOK)+`;
-var strMess=`+serialize(strMess)+`;
+var boOK=${JSON.stringify(boOK)};
+var strMess=${serialize(strMess)};
 
 if(boOK){
-  var userInfoFrIPTT=`+JSON.stringify(this.sessionCache.userInfoFrIP)+`;
-  var userInfoFrDBTT=`+JSON.stringify(this.sessionCache.userInfoFrDB)+`;
-  var CSRFCodeTT=`+JSON.stringify(this.CSRFCode)+`;
-  var fun=`+serialize(this.sessionLogin.fun)+`;
-  window.opener.loginReturn(userInfoFrIPTT,userInfoFrDBTT,fun,strMess,CSRFCodeTT);
+  var userInfoFrIPTT=${JSON.stringify(req.sessionCache.userInfoFrIP)};
+  var userInfoFrDBTT=${JSON.stringify(req.sessionCache.userInfoFrDB)};
+  var CSRFCodeTT=${JSON.stringify(this.CSRFCode)};
+  var fun=${serialize(this.sessionLogin.fun)};
+  //window.opener.loginReturn(userInfoFrIPTT,userInfoFrDBTT,fun,strMess,CSRFCodeTT);
+  localStorage.strMyLoginReturn=JSON.stringify({userInfoFrIPTT,userInfoFrDBTT,CSRFCodeTT})
   window.close();
 }
 else {
@@ -347,8 +374,8 @@ ReqLoginBack.prototype.adminFun=async function(){
   var {userTab, adminTab}=this.site.TableName;
    
   var Sql=[], Val=[IP, idIP];
-  Sql.push("INSERT INTO "+userTab+" (IP,idIP) VALUES (?,?) ON DUPLICATE KEY UPDATE idUser=LAST_INSERT_ID(idUser);");
-  Sql.push("INSERT INTO "+adminTab+" VALUES (LAST_INSERT_ID(),0,now()) ON DUPLICATE KEY UPDATE created=VALUES(created);");
+  Sql.push(`INSERT INTO ${userTab} (IP,idIP) VALUES (?,?) ON DUPLICATE KEY UPDATE idUser=LAST_INSERT_ID(idUser);`);
+  Sql.push(`INSERT INTO ${adminTab} VALUES (LAST_INSERT_ID(),0,now()) ON DUPLICATE KEY UPDATE created=VALUES(created);`);
   var sql=Sql.join('\n');
   var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err]; 
   
@@ -367,7 +394,7 @@ ReqLoginBack.prototype.adminFun=async function(){
 ReqLoginBack.prototype.getGraph=async function(){
   var {req, res}=this;
     // With the access_token you can get the data about the user
-  var uGraph=UrlGraph.fb+"?access_token="+this.access_token+'&fields=id,name,picture,locale,timezone,gender'; //,verified
+  var uGraph=`${UrlGraph.fb}?access_token=${this.access_token}&fields=id,name,picture,locale,timezone,gender`; //,verified
   // var reqStream=requestMod.get(uGraph);
   // var buf=await new Promise(resolve=>{   var myConcat=concat(bT=>resolve(bT));    reqStream.pipe(myConcat);     })
   // var objGraph=JSON.parse(buf.toString());
@@ -392,7 +419,7 @@ function parseSignedRequest(signedRequest, secret) {
   var b64ExpectedMac = myCrypto.createHmac('sha256', secret).update(b64UrlPayload).digest('base64');
   var b64UrlExpectedMac=b64ExpectedMac.replace(/\+/g, '-').replace(/\//g, '_').replace('=', '');
   if (b64UrlMac !== b64UrlExpectedMac) {
-    return [Error('Invalid mac: ' + b64UrlMac + '. Expected ' + b64UrlExpectedMac)];
+    return [Error(`Invalid mac: ${b64UrlMac}. Expected ${b64UrlExpectedMac}`)];
   }
   return [null,data];
 }
@@ -403,9 +430,9 @@ app.deleteOne=async function(site,user_id){ //
   var Ou={};
 
   var Sql=[], Val=[];
-  Sql.push("SELECT count(*) AS n FROM "+userTab+";");
-  Sql.push("DELETE FROM "+userTab+" WHERE idIP=?;"); Val.push(user_id);
-  Sql.push("SELECT count(*) AS n FROM "+userTab+";");
+  Sql.push(`SELECT count(*) AS n FROM ${userTab};`);
+  Sql.push(`DELETE FROM ${userTab} WHERE idIP=?;`); Val.push(user_id);
+  Sql.push(`SELECT count(*) AS n FROM ${userTab};`);
   var sql=Sql.join('\n');
   var [err, results]=await this.myMySql.query(sql, Val); if(err) return [err];
   var nTotO=Number(results[0][0].n);
@@ -442,17 +469,17 @@ app.reqDataDelete=async function(){  //
   for(var i=0;i<SiteName.length;i++){
     var siteName=SiteName[i], site=Site[siteName];
     var [err,c]=await deleteOne.call(this, site, user_id);
-    if(c) StrMess.push(siteName+' ('+c+')');
+    if(c) StrMess.push(`${siteName} (${c})`);
   }
 
-  var mess='User '+user_id+':';     if(StrMess.length) mess+=' deleted on: '+StrMess.join(', '); else mess+=' not found.';
+  var mess=`User ${user_id}:`;     if(StrMess.length) mess+=' deleted on: '+StrMess.join(', '); else mess+=' not found.';
   console.log('reqDataDelete: '+mess);
   var confirmation_code=genRandomString(32);
   var [err]=await setRedis(confirmation_code+'_DeleteRequest', mess, timeOutDeleteStatusInfo); if(err) { res.out500(err); return; } //3600*24*30
 
   res.setHeader('Content-Type', MimeType.json); 
-  //res.end("{ url: '"+uSite+'/'+leafDataDeleteStatus+'?confirmation_code='+confirmation_code+"', confirmation_code: '"+confirmation_code+ "' }");
-  res.end(JSON.stringify({ url: uSite+'/'+leafDataDeleteStatus+'?confirmation_code='+confirmation_code, confirmation_code }));
+  //res.end(`{ url: '${uSite}/${leafDataDeleteStatus}?confirmation_code=${confirmation_code}', confirmation_code: '${confirmation_code}' }`);
+  res.end(JSON.stringify({ url: `${uSite}/${leafDataDeleteStatus}?confirmation_code=${confirmation_code}`, confirmation_code }));
 }
 
 app.reqDataDeleteStatus=async function(){
@@ -465,8 +492,8 @@ app.reqDataDeleteStatus=async function(){
   if(err) {var mess=err.message;}
   else if(mess==null) {
     var [t,u]=getSuitableTimeUnit(timeOutDeleteStatusInfo);
-    //var mess="The delete status info is only available for "+t+u+".\nAll delete requests are handled immediately. So if you pressed delete, you are deleted.";
-    var mess="No info of deletion status found, (any info is deleted "+t+u+" after the deletion request).";
+    //var mess=`The delete status info is only available for ${t}${u}.\nAll delete requests are handled immediately. So if you pressed delete, you are deleted.`;
+    var mess=`No info of deletion status found, (any info is deleted ${t}${u} after the deletion request).`;
   }
   res.end(mess);
 }
@@ -500,7 +527,7 @@ app.reqStatic=async function() {
     var [err]=await readFileToCache(filename);
     if(err) {
       if(err.code=='ENOENT') {res.out404(); return;}
-      if('host' in req.headers) console.error('Faulty request to '+req.headers.host+" ("+pathName+")");
+      if('host' in req.headers) console.error(`Faulty request to ${req.headers.host} (${pathName})`);
       if('Referer' in req.headers) console.error('Referer:'+req.headers.Referer);
       res.out500(err); return;
     }
@@ -508,7 +535,7 @@ app.reqStatic=async function() {
   var {buf, type, eTag, boZip, boUglify}=CacheUri[keyCache];
   if(eTag===eTagIn){ res.out304(); return; }
   var mimeType=MimeType[type];
-  if(typeof mimeType!='string') console.log('type: '+type+', mimeType: ', mimeType);
+  if(typeof mimeType!='string') console.log(`type: ${type}, mimeType: `, mimeType);
   if(typeof buf!='object' || !('length' in buf)) console.log('typeof buf: '+typeof buf);
   if(typeof eTag!='string') console.log('typeof eTag: '+eTag);
   var objHead={"Content-Type": mimeType, "Content-Length":buf.length, ETag: eTag, "Cache-Control":"public, max-age=31536000"};
@@ -532,7 +559,7 @@ app.reqMonitor=async function(){
   
   if(boRefresh){ 
     var Sql=[];
-    Sql.push("SELECT count(*) AS n FROM "+userTab+";");
+    Sql.push(`SELECT count(*) AS n FROM ${userTab};`);
 
     var sql=Sql.join('\n'), Val=[];
     var [err, results]=await this.myMySql.query(sql, Val); if(err) { res.out500(err); return; }
@@ -547,8 +574,8 @@ app.reqMonitor=async function(){
     if(boRefresh) strColor='lightgreen';
     if(site.boGotNewVoters) strColor='red';
   }
-  var strUser=nUser;  if(strColor) strUser="<span style=\"background-color:"+strColor+"\">"+nUser+"</span>";
-  Str.push("<body style=\"margin: 0px\">"+strUser+"</body>");
+  var strUser=nUser;  if(strColor) strUser=`<span style="background-color:${strColor}">${nUser}</span>`;
+  Str.push(`<body style="margin: 0px">${strUser}</body>`);
   Str.push("</html>");
 
   var str=Str.join('\n');  res.end(str);
@@ -579,7 +606,7 @@ app.SetupSql.prototype.createTable=async function(siteName, boDropOnly){
   var tmp=StrTabName.join(', ');
   SqlTabDrop.push("DROP TABLE IF EXISTS "+tmp);     
   SqlTabDrop.push('DROP TABLE IF EXISTS '+userTab);     
-  //var tmp=object_values(ViewName).join(', ');   if(tmp.length) SqlTabDrop.push("DROP VIEW IF EXISTS "+tmp+"");
+  //var tmp=object_values(ViewName).join(', ');   if(tmp.length) SqlTabDrop.push(`DROP VIEW IF EXISTS ${tmp}`);
 
 
   var collate="utf8_general_ci";
@@ -600,13 +627,13 @@ app.SetupSql.prototype.createTable=async function(siteName, boDropOnly){
       if(strType=='ENUM'){
         //$tmpName='enum'.ucfirst($name);
         //$arra=$$tmpName;$str=implode("','",$arra); if(count($arra)>0) $str="'$str'";
-        var arra=Prop[name].Enum, str=arra.join("','"); if(arra.length) str="'"+str+"'";
-        strType="ENUM("+str+")";
+        var arra=Prop[name].Enum, str=arra.join("','"); if(arra.length) str=`'${str}'`;
+        strType=`ENUM(${str})`;
       }
       var strNull=Number(b[bFlip.notNull])?'NOT NULL':'';
       var strDefault=arr.default?"DEFAULT "+arr.default:'';
       var strOther=arr.other||'';
-      arrCols.push("`"+name+"` "+strType+" "+strNull+" "+strDefault+" "+strOther);
+      arrCols.push(`\`${name}\` ${strType} ${strNull} ${strDefault} ${strOther}`);
     }//``
   }
   var strSql=arrCols.join(",\n");
@@ -616,38 +643,38 @@ app.SetupSql.prototype.createTable=async function(siteName, boDropOnly){
   var arrTmp=[userTab, userSnapShotTab];
   for(var i=0;i<arrTmp.length;i++ ){
     var userTabT=arrTmp[i];
-    SqlTab.push(`CREATE TABLE `+userTabT+` (
-    `+strSql+`,
+    SqlTab.push(`CREATE TABLE ${userTabT} (
+    ${strSql},
     PRIMARY KEY (idUser),
     UNIQUE KEY (IP,idIP)
-    ) ENGINE=`+engine+` COLLATE `+collate); 
+    ) ENGINE=${engine} COLLATE ${collate}`); 
 
       // Create indexes
     for(var name in Prop){
       var arr=Prop[name];
       var b=arr.b;
       if(Number(b[bFlip.userTabIndex])){
-        if(0) SqlTab.push("CREATE INDEX "+name+"Index ON "+userTabT+"("+name+")");
+        if(0) SqlTab.push(`CREATE INDEX ${name}Index ON ${userTabT}(${name})`);
       }
     }
   }
 
 
-  SqlTab.push(`CREATE TABLE `+settingTab+` (
+  SqlTab.push(`CREATE TABLE ${settingTab} (
   name varchar(65) CHARSET utf8 NOT NULL,
   value varchar(65) CHARSET utf8 NOT NULL,
   UNIQUE KEY (name)
-  ) ENGINE=`+engine+` COLLATE `+collate); 
+  ) ENGINE=${engine} COLLATE ${collate}`); 
 
 
     // Create admin
-  SqlTab.push(`CREATE TABLE `+adminTab+` (
+  SqlTab.push(`CREATE TABLE ${adminTab} (
   idUser int(4) NOT NULL,
   boApproved tinyint(1) NOT NULL,
   created TIMESTAMP default CURRENT_TIMESTAMP,
-  FOREIGN KEY (idUser) REFERENCES `+userTab+`(idUser) ON DELETE CASCADE,
+  FOREIGN KEY (idUser) REFERENCES ${userTab}(idUser) ON DELETE CASCADE,
   UNIQUE KEY (idUser)
-  ) ENGINE=`+engine+` COLLATE `+collate); 
+  ) ENGINE=${engine} COLLATE ${collate}`); 
 
 
 
@@ -676,33 +703,33 @@ app.SetupSql.prototype.createFunction=async function(siteName, boDropOnly){
 
 
 
-  SqlFunctionDrop.push("DROP PROCEDURE IF EXISTS "+siteName+"condMakeSnapShot");
+  SqlFunctionDrop.push(`DROP PROCEDURE IF EXISTS ${siteName}condMakeSnapShot`);
 
 
-  SqlFunctionDrop.push("DROP PROCEDURE IF EXISTS "+siteName+"dupMake");
-  SqlFunction.push(`CREATE PROCEDURE `+siteName+`dupMake()
+  SqlFunctionDrop.push(`DROP PROCEDURE IF EXISTS ${siteName}dupMake`);
+  SqlFunction.push(`CREATE PROCEDURE ${siteName}dupMake()
       BEGIN
-        CALL copyTable('`+userTab+`_dup','`+userTab+`');
-        CALL copyTable('`+adminTab+`_dup','`+adminTab+`');
+        CALL copyTable('${userTab}_dup','${userTab}');
+        CALL copyTable('${adminTab}_dup','${adminTab}');
       END`);
 
 
 
-  SqlFunctionDrop.push("DROP PROCEDURE IF EXISTS "+siteName+"dupTrunkOrgNCopyBack");
-  SqlFunction.push(`CREATE PROCEDURE `+siteName+`dupTrunkOrgNCopyBack()
+  SqlFunctionDrop.push(`DROP PROCEDURE IF EXISTS ${siteName}dupTrunkOrgNCopyBack`);
+  SqlFunction.push(`CREATE PROCEDURE ${siteName}dupTrunkOrgNCopyBack()
       BEGIN
-        DELETE FROM `+adminTab+` WHERE 1;
-        DELETE FROM `+userTab+` WHERE 1;
+        DELETE FROM ${adminTab} WHERE 1;
+        DELETE FROM ${userTab} WHERE 1;
 
-        INSERT INTO `+userTab+` SELECT * FROM `+userTab+`_dup;
-        INSERT INTO `+adminTab+` SELECT * FROM `+adminTab+`_dup;
+        INSERT INTO ${userTab} SELECT * FROM ${userTab}_dup;
+        INSERT INTO ${adminTab} SELECT * FROM ${adminTab}_dup;
       END`);
 
-  SqlFunctionDrop.push("DROP PROCEDURE IF EXISTS "+siteName+"dupDrop");
-  SqlFunction.push(`CREATE PROCEDURE `+siteName+`dupDrop()
+  SqlFunctionDrop.push(`DROP PROCEDURE IF EXISTS ${siteName}dupDrop`);
+  SqlFunction.push(`CREATE PROCEDURE ${siteName}dupDrop()
       BEGIN
-        DROP TABLE IF EXISTS `+adminTab+`_dup;
-        DROP TABLE IF EXISTS `+userTab+`_dup;
+        DROP TABLE IF EXISTS ${adminTab}_dup;
+        DROP TABLE IF EXISTS ${userTab}_dup;
       END`);
 
   
@@ -862,7 +889,7 @@ app.SetupSql.prototype.createDummies=async function(siteName){
   if(in_array("appGoogle", StrPlugIn)){
     arrAssign=arrAssign.concat([ 'nameIP', 'nickIP']);
   }
-  var StrName=[];     for(var j=0;j<arrAssign.length;j++){  var name=arrAssign[j];  StrName[j]="`"+name+"`";    }       var strName=StrName.join(', ')
+  var StrName=[];     for(var j=0;j<arrAssign.length;j++){  var name=arrAssign[j];  StrName[j]=`\`${name}\``;    }       var strName=StrName.join(', ')
 
   var SqlAllU=[];  var SqlAllC=[];
   var AddressT={};
@@ -888,27 +915,27 @@ app.SetupSql.prototype.createDummies=async function(siteName){
       if(!(name in Prop)) debugger
       if('voterUpdF' in Prop[name]){ var [QMark,trash]=Prop[name].voterUpdF.call(Prop,name,value);  }
       var valT=QMark.replace(/\?/,value);     
-      if(in_array(name,StringData) && value!==null){ valT="'"+valT+"'";}
+      if(in_array(name,StringData) && value!==null){ valT=`'${valT}'`;}
 
       StrIns.push(valT);
     }
     //var c0=getRandSpan('choise'); StrIns.push(c0);
     var strIns=StrIns.join(', ');  
-    var sqlCurU="("+strIns+")"; 
+    var sqlCurU=`(${strIns})`; 
     SqlAllU.push(sqlCurU);  
 
      //, c1;     while(1) {c1=getRandSpan('choise'); if(c1!=c0) break;}
-    //var sqlCurC="("+person.idUser+', '+getRandSpan('choise')+")";     SqlAllC.push(sqlCurC);  
-    //var sqlCurC="("+person.idUser+', '+c0+")";     SqlAllC.push(sqlCurC);  
-    //if(Math.random()>0.5) {var sqlCurC="("+person.idUser+', '+c1+")";     SqlAllC.push(sqlCurC);  }
+    //var sqlCurC=`(${person.idUser}, ${getRandSpan('choise')})`;     SqlAllC.push(sqlCurC);  
+    //var sqlCurC=`(${person.idUser}, ${c0})`;     SqlAllC.push(sqlCurC);  
+    //if(Math.random()>0.5) {var sqlCurC=`(${person.idUser}, ${c1})`;     SqlAllC.push(sqlCurC);  }
   }
 
   var tmp=SqlAllU.join(",");
-  Sql.push("INSERT INTO "+userTab+" ( "+strName+") VALUES "+tmp);
+  //Sql.push(`INSERT INTO ${userTab} ( ${strName}) VALUES ${tmp}`);
 
 
   //var tmp=SqlAllC.join(",");
-  //Sql.push("INSERT INTO "+choiseTab+" (idUser,choise) VALUES "+tmp);
+  //Sql.push(`INSERT INTO ${choiseTab} (idUser,choise) VALUES ${tmp}`);
 
   var strDelim=';', sql=Sql.join(strDelim+'\n')+strDelim, Val=[];
   var [err, results]=await this.myMySql.query(sql, Val);  if(err) {  return [err]; }
@@ -939,7 +966,7 @@ app.SetupSql.prototype.truncate=async function(siteName){
   Sql.push(tmp);
   for(var i=0;i<StrTabName.length;i++){
     Sql.push("DELETE FROM "+StrTabName[i]);
-    Sql.push("ALTER TABLE "+StrTabName[i]+" AUTO_INCREMENT = 1");
+    Sql.push(`ALTER TABLE ${StrTabName[i]} AUTO_INCREMENT = 1`);
   }
   Sql.push('UNLOCK TABLES');
   Sql.push('SET FOREIGN_KEY_CHECKS=1');
@@ -986,10 +1013,10 @@ app.SetupSql.prototype.doQuery=async function(strCreateSql){
 
 var writeMessTextOfMultQuery=function(Sql, err, results){
   var nSql=Sql.length, nResults='(single query)'; if(results instanceof Array) nResults=results.length;
-  console.log('nSql='+nSql+', nResults='+nResults);
+  console.log(`nSql=${nSql}, nResults=${nResults}`);
   var StrMess=[];
   if(err){
-    StrMess.push('err.index: '+err.index+', err: '+err);
+    StrMess.push(`err.index: ${err.index}, err: ${err}`);
     if(nSql==nResults){
       var tmp=Sql.slice(bound(err.index-1,0,nSql), bound(err.index+2,0,nSql)),  sql=tmp.join('\n');
       StrMess.push('Since "Sql" and "results" seem correctly aligned (has the same size), then 3 queries are printed (the preceding, the indexed, and following query (to get a context)):\n'+sql); 
@@ -1013,9 +1040,9 @@ ReqSql.prototype.toBrowser=function(objSetupSql){
   //var objTmp=Object.getPrototypeOf(objSetupSql);
   if(StrValidMeth.indexOf(strMeth)!=-1){
     var SqlA=objSetupSql[strMeth](SiteNameT, boDropOnly); 
-    var strDelim=';;', sql='-- DELIMITER '+strDelim+'\n'      +SqlA.join(strDelim+'\n')+strDelim      +'\n-- DELIMITER ;\n';
+    var strDelim=';;', sql=`-- DELIMITER ${strDelim}\n${SqlA.join(strDelim+'\n')+strDelim}\n-- DELIMITER ;\n`;
     res.out200(sql);
-  }else{ var tmp=req.pathNameWOPrefix+' is not valid input, try: '+this.StrType+' (suffixed with "All" if you want to)'; console.log(tmp); res.out404(tmp); }
+  }else{ var tmp=`${req.pathNameWOPrefix} is not valid input, try: ${this.StrType} (suffixed with "All" if you want to)`; console.log(tmp); res.out404(tmp); }
 }  
 
 
@@ -1032,7 +1059,7 @@ app.createDumpCommand=function(){
     }
     strCommand+='          '+StrTab.join(' ');
   }
-  strCommand="mysqldump mmm --user=root -p --no-create-info --hex-blob"+strCommand+'          >tracker.sql';
+  strCommand=`mysqldump mmm --user=root -p --no-create-info --hex-blob${strCommand}          >tracker.sql`;
 
   return strCommand;
 }
