@@ -146,7 +146,7 @@ app.copySome=function(a,b,Str){for(var i=0;i<Str.length;i++) { var name=Str[i]; 
 
 
 //extractLoc=function(obj,strObjName){   // Ex: eval(extractLoc(objMy,'objMy'));
-  //var Str=[];  for(var key in obj) Str.push(key+'='+strObjName+'.'+key);
+  //var Str=[];  for(var key in obj) Str.push(`${key}=${strObjName}.${key}`);
   //var str=''; if(Str.length) str='var '+Str.join(', ')+';';  return str;
 //}
 ////extract=function(obj){  for(var key in obj){  window[key]=obj[key];  }  }
@@ -157,7 +157,7 @@ app.copySome=function(a,b,Str){for(var i=0;i<Str.length;i++) { var name=Str[i]; 
 //}
 //extractLocSome=function(strObjName,arrSome){  // Ex: eval(extractLocSome('objMy',['a','b']));
   //if(typeof arrSome=='string') arrSome=[arrSome];
-  //var len=arrSome.length, Str=Array(len);  for(var i=0;i<len;i++) { var key=arrSome[i]; Str[i]=key+'='+strObjName+'.'+key; }
+  //var len=arrSome.length, Str=Array(len);  for(var i=0;i<len;i++) { var key=arrSome[i]; Str[i]=`${key}=${strObjName}.${key}`; }
   //return 'var '+Str.join(', ')+';';
 //}
 
@@ -168,7 +168,7 @@ app.copySome=function(a,b,Str){for(var i=0;i<Str.length;i++) { var name=Str[i]; 
 
 Date.prototype.toUnix=function(){return Math.round(this.valueOf()/1000);}
 Date.prototype.toISOStringMy=function(){return this.toISOString().substr(0,19);}
-app.swedDate=function(tmp){ if(tmp){tmp=UTC2JS(tmp);  tmp=tmp.getFullYear()+'-'+pad2(tmp.getMonth()+1)+'-'+pad2(tmp.getDate());}  return tmp;}
+app.swedDate=function(tmp){ if(tmp){tmp=UTC2JS(tmp);  tmp=`${tmp.getFullYear()}-${pad2(tmp.getMonth()+1)}-${pad2(tmp.getDate())}`;}  return tmp;}
 app.UTC2JS=function(utcTime){ var tmp=new Date(Number(utcTime)*1000);  return tmp;  }
 app.UTC2Readable=function(utcTime){ var tmp=new Date(Number(utcTime)*1000);   return tmp.toLocaleString();  }
 app.unixNow=function(){return (new Date()).toUnix();}
@@ -299,7 +299,7 @@ app.tabNStrCol2ArrObj=function(tabNStrCol){  //Ex: {tab:[[0,1],[2,3]],StrCol:['a
 }
 
 app.deserialize=function(serializedJavascript){
-  return eval('(' + serializedJavascript + ')');
+  return eval(`(${serializedJavascript })`);
 }
 
 app.parseQS=function(str){
