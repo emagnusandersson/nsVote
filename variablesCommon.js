@@ -373,16 +373,18 @@ app.DBExtend=function(DB){
   var StrDB=Object.keys(UriDB);
   for(var i=0;i<StrDB.length;i++){
     var name=StrDB[i], uriDB=UriDB[name];
-    var uriObj=url.parse(uriDB);
-
-    var StrMatch=RegExp('^(.*):(.*)$').exec(uriObj.auth);
-    var nameDB=uriObj.pathname.substr(1);
+    //var uriObjO=url.parse(uriDB);
+    //var StrMatch=RegExp('^(.*):(.*)$').exec(uriObj.auth);
+    //var [,username, password]=StrMatch
+    var uriObj=new URL(uriDB);
+    var {username, password}=uriObj
+    var nameDB=uriObj.pathname.slice(1);
     DB[name]={nameDB};
     var pool  = mysql.createPool({
       connectionLimit : nDBConnectionLimit,
       host            : uriObj.host,
-      user            : StrMatch[1],
-      password        : StrMatch[2],
+      user            : username,
+      password        : password,
       database        : nameDB,
       multipleStatements: true,
       waitForConnections:true,

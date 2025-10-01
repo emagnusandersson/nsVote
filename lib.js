@@ -302,14 +302,7 @@ app.deserialize=function(serializedJavascript){
   return eval(`(${serializedJavascript })`);
 }
 
-app.parseQS=function(str){
-  var params = {},      regex = /([^&=]+)=([^&]*)/g, m;
-  while (m = regex.exec(str)) {
-    params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
-  }
-  return params;
-}
-app.parseQS2=function(qs){
+app.parseQS=function(qs){
   var objQS={}, objTmp=new URLSearchParams(qs);
   for(const [name, value] of objTmp) {  objQS[name]=value;  }
   return objQS;

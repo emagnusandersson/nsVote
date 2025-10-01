@@ -2,7 +2,7 @@
 global.app=global;
 import http from "http";
 import https from "https";
-import url from "url";
+//import url from "url";
 import path from "path";
 //import fs from "fs";
 //import fsPromises from "fs/promises";
@@ -29,7 +29,7 @@ import mime from "mime";
 import minimist from 'minimist';
 var argv=minimist(process.argv.slice(2));
 import './lib.js';
-extend(app, {http, url, path, fsPromises, mysql, concat, fetch, formidable, myCrypto, zlib, ip, serialize, mime});
+extend(app, {http, path, fsPromises, mysql, concat, fetch, formidable, myCrypto, zlib, ip, serialize, mime}); //, url
 import './libMath.js';
 import './libServerGeneral.js';
 import './libServer.js';
@@ -225,13 +225,12 @@ const handler=async function(req, res){
   
   
     // Extract qs, objQS
-  var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=parseQS2(qs);
-
+  var objUrl=new URL("http://trash.com"+req.url), pathNameOrg=objUrl.pathname, qs=objUrl.search;  //objQSNew=objUrlNew.searchParams;
+  var objQS=parseQS(qs)
 
 
     // Extract siteName, wwwSite
   var domainName=req.headers.host; 
-  var pathNameOrg=objUrl.pathname;
   var wwwReq=domainName+pathNameOrg;
 
   var {siteName,wwwSite}=Site.getSite(wwwReq);  

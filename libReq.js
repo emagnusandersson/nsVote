@@ -450,12 +450,13 @@ app.deleteOne=async function(site,user_id){ //
 app.reqDataDelete=async function(){  //
   var {req, res}=this, {objQS, uSite}=req;
 
-  if(req.method=='GET' && boDbg){ var objUrl=url.parse(req.url), qs=objUrl.query||'', strData=qs; } else 
-  if(req.method=='POST'){
+  if(req.method=='GET' && boDbg){ 
+    //var objUrl=url.parse(req.url), qs=objUrl.query||'', strData=qs;
+    var objUrl=new URL('http://trash.com'+req.url), strData=objUrl.search.slice(1);
+  } else if(req.method=='POST'){
     var buf=await new Promise(resolve=>{   var myConcat=concat(bT=>resolve(bT));    req.pipe(myConcat);   })
     var strData=buf.toString();
-  }
-  else {res.outCode(400, "Post request wanted"); return; }
+  } else {res.outCode(400, "Post request wanted"); return; }
   
   //try{ var obj=JSON.parse(jsonInput); }catch(e){ res.outCode(400, "Error parsing json: "+e);  return; }
 
@@ -485,7 +486,7 @@ app.reqDataDelete=async function(){  //
 app.reqDataDeleteStatus=async function(){
   var {req, res}=this, {site, objQS, uSite}=req;
   //var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=querystring.parse(qs);
-  //var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=parseQS2(qs);
+  //var objUrl=url.parse(req.url), qs=objUrl.query||'', objQS=parseQS(qs);
   //var confirmation_code=objQS.confirmation_code||'';
   var {confirmation_code=''}=objQS;
   var [err,mess]=await getRedis(confirmation_code+'_DeleteRequest'); 
@@ -514,7 +515,8 @@ app.reqStatic=async function() {
   if(req.method=='OPTIONS'){ res.end(); return ;}
 
   //if('origin' in req.headers){ //if cross site
-    //var http_origin=req.headers.origin, objUrl=url.parse(http_origin);
+    //var http_origin=req.headers.origin;   // objUrl=url.parse(http_origin);
+    //var objUrl=new URL('http://trash.com'+req.url);
     //var boOK=0, keys=Object.keys(Site); for(var i=0;i<keys.length;i++){if(objUrl.host==Site[keys[i]].wwwSite) {boOK=1; break;} }; 
     //if(boOK) res.setHeader("Access-Control-Allow-Origin", http_origin);
     //if(req.method=='OPTIONS'){  res.end(); return;}
